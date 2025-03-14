@@ -1,6 +1,6 @@
 # Malerium
 
-![Malerium Preview](https://via.placeholder.com/600x300)
+![Malerium Preview](/public/assets/Malerium-preview.png)
 
 Malerium is nearly ready for its big reveal! It’s still in development, with new features and improvements being added constantly. Stay tuned for updates and help spread the word!
 
