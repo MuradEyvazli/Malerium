@@ -1,36 +1,18 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# Malerium
 
-## Getting Started
+![Malerium Preview](https://via.placeholder.com/600x300)
 
-First, run the development server:
+Malerium is nearly ready for its big reveal! It’s still in development, with new features and improvements being added constantly. Stay tuned for updates and help spread the word!
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## Project Overview
+Malerium aims to become a Behance-like platform, centralizing resources such as stock images, vectors, mockups, and more—all in one place. Our goal is to empower designers with a comprehensive suite of tools and foster collaboration worldwide.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Contributing
+1. Fork the repository to your own GitHub account.
+2. Clone your forked repository locally.
+3. Create a new branch for your feature or fix.
+4. Commit your changes and push them to your fork.
+5. Create a Pull Request and briefly describe your contribution.
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Contact
+For questions, suggestions, or just to say hi, feel free to reach out through [GitHub Issues](https://github.com/DeCaster/Malerium/issues) or submit a Pull Request. We’d love to hear from you!
