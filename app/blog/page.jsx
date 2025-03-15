@@ -59,7 +59,6 @@ export default function BlogPage() {
   const [showScrollIndicator, setShowScrollIndicator] = useState(false);
   const [premiumHighlight, setPremiumHighlight] = useState(false);
 
-  // Profil fotoğrafı önizleme modalı için yeni state
   const [photoPreview, setPhotoPreview] = useState({
     show: false,
     src: "",
@@ -74,27 +73,27 @@ export default function BlogPage() {
 
   const postsPerPage = 6;
 
-  // Profil fotoğrafını önizleme modalında göster
+  
   const scrollToPremium = () => {
     setShowScrollIndicator(true);
     
-    // Smooth scroll işlemi
+   
     if (premiumSectionRef.current) {
       premiumSectionRef.current.scrollIntoView({ 
         behavior: 'smooth', 
         block: 'start' 
       });
       
-      // Scroll tamamlandıktan sonra highlight efekti
+      
       setTimeout(() => {
         setPremiumHighlight(true);
         
-        // Scroll göstergesini kaldır
+       
         setTimeout(() => {
           setShowScrollIndicator(false);
         }, 1000);
         
-        // Highlight efektini kaldır
+        
         setTimeout(() => {
           setPremiumHighlight(false);
         }, 3000);
@@ -103,8 +102,8 @@ export default function BlogPage() {
   };
   const openPhotoPreview = (src, alt, e) => {
     if (e) {
-      e.preventDefault(); // Link'in çalışmasını engelle
-      e.stopPropagation(); // Event'in parent elementlere yayılmasını engelle
+      e.preventDefault(); 
+      e.stopPropagation(); 
     }
     setPhotoPreview({
       show: true,
@@ -113,7 +112,7 @@ export default function BlogPage() {
     });
   };
 
-  // Profil fotoğrafı önizleme modalını kapat
+  
   const closePhotoPreview = () => {
     setPhotoPreview({
       ...photoPreview,
@@ -174,9 +173,9 @@ export default function BlogPage() {
     ],
   };
 
-  // 1) Fetch currentUser
+  
   useEffect(() => {
-    if (typeof window === "undefined") return; // Prevent SSR issues
+    if (typeof window === "undefined") return; 
     const token = localStorage.getItem("token");
     if (!token) {
       dispatch(clearUser());
@@ -201,7 +200,7 @@ export default function BlogPage() {
     fetchCurrentUser();
   }, [dispatch]);
 
-  // 2) Fetch all posts
+  
   useEffect(() => {
     const fetchPosts = async () => {
       dispatch(startLoading());
@@ -462,10 +461,10 @@ const handlePostView = async (postId) => {
                   opacity: [0, 1, 1, 0],
                   y: [-20, 0, 0, 20],
                   color: [
-                    "#4F46E5", // indigo-600
-                    "#8B5CF6", // violet-500
-                    "#EC4899", // pink-500
-                    "#3B82F6"  // blue-500
+                    "#4F46E5", 
+                    "#8B5CF6", 
+                    "#EC4899", 
+                    "#3B82F6"  
                   ]
                 }}
                 transition={{ 
@@ -1089,7 +1088,7 @@ const handlePostView = async (postId) => {
                   variants={fadeInUp}
                   className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 flex flex-col h-full"
                 >
-                  {/* Image section with fixed aspect ratio */}
+                  
                   <div className="relative w-full" style={{ paddingBottom: "56.25%" }}>
                     <div className="absolute inset-0">
                       <Link href={`/blog/${post._id}`} className="block w-full h-full">
@@ -1124,7 +1123,7 @@ const handlePostView = async (postId) => {
                     </div>
                   </div>
                   
-                  {/* Content section with fixed height */}
+                  
                   <div className="p-6 flex-grow flex flex-col">
                     <Link href={`/blog/${post._id}`}>
                       <h3 className="text-xl font-bold mb-2 text-gray-900 hover:text-yellow-600 transition-colors line-clamp-2 min-h-[3.5rem]">
@@ -1191,7 +1190,7 @@ const handlePostView = async (postId) => {
     <span className="text-sm">{post.comments?.length || 0}</span>
   </button>
   
-  {/* Add the view counter here */}
+  
   <div className="flex items-center gap-1 text-gray-600">
     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -1237,7 +1236,7 @@ const handlePostView = async (postId) => {
             </motion.div>
           )}
           
-          {/* Improved Pagination */}
+          
           {totalPages > 1 && (
             <div className="flex justify-center mt-12">
               <button
@@ -1339,7 +1338,7 @@ const handlePostView = async (postId) => {
             ) : (
               <>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {/* Use the same image and content layout as the all posts section */}
+                  
                   {(myPosts.length >= 3 ? myPosts.slice(0, 3) : myPosts).map((post, i) => (
                     <motion.div
                       key={`my-post-${post._id || i}`}
@@ -1349,7 +1348,7 @@ const handlePostView = async (postId) => {
                       transition={{ duration: 0.4, delay: i * 0.1 }}
                       className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 border border-yellow-100 flex flex-col h-full"
                     >
-                      {/* Image section with fixed aspect ratio */}
+                      
                       <div className="relative w-full" style={{ paddingBottom: "56.25%" }}>
                         <div className="absolute inset-0">
                           <Link href={`/blog/${post._id}`} className="block w-full h-full">
@@ -1437,7 +1436,7 @@ const handlePostView = async (postId) => {
     <span className="text-sm">{post.comments?.length || 0}</span>
   </div>
   
-  {/* Görüntülenme sayacını ekle */}
+  
   <div className="flex items-center gap-1 text-gray-600">
     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />

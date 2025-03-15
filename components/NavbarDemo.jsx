@@ -1,19 +1,22 @@
+"use client";
+
 import { Book, Sunset, Trees, Zap, Menu } from "lucide-react";
+import { Navbar1 } from "@/components/blocks/shadcnblocks-com-navbar1"; // Update this path to where your Navbar1 component is located
 
-import { Navbar1 } from "@/components/blocks/shadcnblocks-com-navbar1"
-
-const demoData = {
+// Demo data configuration
+const navbarConfig = {
   logo: {
     url: "/",
     src: "/assets/maleriumBlack.png",
     alt: "blocks for shadcn/ui",
+    // You can add title if you want it to display next to the logo
+    // title: "malerium.com"
   },
   menu: [
     {
       title: "Home",
       url: "/",
     },
-    
     {
       title: "Color Wheel",
       url: "/color-wheel",
@@ -21,13 +24,13 @@ const demoData = {
         {
           title: "Color Wheel",
           description: "Font collection for your next project",
-          icon: <Menu className="size-5 shrink-0" />,
+          icon: <Menu className="w-5 h-5" />,
           url: "/color-wheel",
         },
         {
           title: "Color Search",
           description: "Our mission is to innovate and empower the world",
-          icon: <Trees className="size-5 shrink-0" />,
+          icon: <Trees className="w-5 h-5" />,
           url: "/color-wheel/color-search",
         },
       ],
@@ -39,38 +42,37 @@ const demoData = {
         {
           title: "Fonts",
           description: "Font collection for your next project",
-          icon: <Menu className="size-5 shrink-0" />,
+          icon: <Menu className="w-5 h-5" />,
           url: "/products/fonts",
         },
         {
           title: "Company",
           description: "Our mission is to innovate and empower the world",
-          icon: <Trees className="size-5 shrink-0" />,
+          icon: <Trees className="w-5 h-5" />,
           url: "/products/company",
         },
       ],
     },
-    
     {
       title: "Resources",
-      url: "/",
+      url: "/resources",
       items: [
         {
           title: "Help Center",
           description: "Get all the answers you need right here",
-          icon: <Zap className="size-5 shrink-0" />,
+          icon: <Zap className="w-5 h-5" />,
           url: "/resources/help-center",
         },
         {
           title: "Contact Us",
           description: "We are here to help you with any questions you have",
-          icon: <Sunset className="size-5 shrink-0" />,
+          icon: <Sunset className="w-5 h-5" />,
           url: "/resources/contact-us",
         },
         {
           title: "Terms of Service",
           description: "Our terms and conditions for using our services",
-          icon: <Book className="size-5 shrink-0" />,
+          icon: <Book className="w-5 h-5" />,
           url: "/resources/term-of-services",
         },
       ],
@@ -80,6 +82,7 @@ const demoData = {
       url: "/blog",
     },
   ],
+  // These links will appear in the mobile menu only
   mobileExtraLinks: [
     { name: "Press", url: "/press" },
     { name: "Contact", url: "/contact" },
@@ -92,8 +95,6 @@ const demoData = {
   },
 };
 
-function Navbar1Demo() {
-  return <Navbar1 {...demoData} />;
+export function Navbar1Demo() {
+  return <Navbar1 {...navbarConfig} />;
 }
-
-export { Navbar1Demo };

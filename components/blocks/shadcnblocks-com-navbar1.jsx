@@ -35,39 +35,8 @@ export function Navbar1({
     alt: "logo",
     title: "malerium.com",
   },
-  menu = [
-    { title: "Home", url: "/" },
-    {
-      title: "Products",
-      url: "/products",
-      items: [
-        {
-          title: "Blog",
-          description: "Latest industry news",
-          icon: <Book className="w-5 h-5" />,
-          url: "/blog",
-        },
-        {
-          title: "Company",
-          description: "Our mission",
-          icon: <Trees className="w-5 h-5" />,
-          url: "/company",
-        },
-        {
-          title: "Careers",
-          description: "Job listings",
-          icon: <Sunset className="w-5 h-5" />,
-          url: "/careers",
-        },
-        {
-          title: "Support",
-          description: "Contact support",
-          icon: <Zap className="w-5 h-5" />,
-          url: "/support",
-        },
-      ],
-    },
-  ],
+  menu = [],
+  mobileExtraLinks = [],
   auth = {
     login: { text: "Log in", url: "/login" },
     signup: { text: "Sign up", url: "/signup" },
@@ -77,7 +46,7 @@ export function Navbar1({
   const router = useRouter();
   const currentUser = useSelector((state) => state.user.currentUser);
 
-  // Kullanıcı bilgisini çekme (Bearer Token)
+  // Fetch user information (Bearer Token)
   useEffect(() => {
     async function fetchUser() {
       const token = localStorage.getItem("token");
@@ -94,9 +63,9 @@ export function Navbar1({
         });
         if (res.ok) {
           const data = await res.json();
-          dispatch(setUser(data.currentUser)); // data = { currentUser: {...} }
+          dispatch(setUser(data.currentUser));
         } else {
-          // Hata durumları (401 vs.)
+          // Handle errors (401 etc.)
           dispatch(clearUser());
           if (res.status === 401) {
             localStorage.removeItem("token");
@@ -110,10 +79,9 @@ export function Navbar1({
     fetchUser();
   }, [dispatch]);
 
-  // Logout işlemi
+  // Logout function
   const handleLogout = async () => {
     try {
-      // Backend'de /api/auth/logout rotanız varsa:
       const token = localStorage.getItem("token");
       const res = await fetch("/api/auth/logout", {
         method: "POST",
@@ -139,21 +107,19 @@ export function Navbar1({
     if (item.items) {
       return (
         <NavigationMenuItem key={item.title}>
-          <NavigationMenuTrigger>{item.title}</NavigationMenuTrigger>
+          <NavigationMenuTrigger className="bg-transparent">{item.title}</NavigationMenuTrigger>
           <NavigationMenuContent>
-            <ul className="w-80 p-3">
+            <ul className="grid w-96 gap-2 p-4 md:w-[400px] md:grid-cols-2">
               {item.items.map((subItem) => (
                 <li key={subItem.title}>
                   <Link
-                    className="flex gap-4 p-3 rounded-md hover:bg-gray-100"
+                    className="flex items-start gap-3 rounded-md p-3 hover:bg-gray-100"
                     href={subItem.url}
                   >
-                    {subItem.icon}
+                    <div className="mt-1 text-primary">{subItem.icon}</div>
                     <div>
-                      <div className="text-sm font-semibold">
-                        {subItem.title}
-                      </div>
-                      <p className="text-sm text-gray-600">
+                      <div className="font-medium">{subItem.title}</div>
+                      <p className="text-sm text-muted-foreground">
                         {subItem.description}
                       </p>
                     </div>
@@ -168,7 +134,10 @@ export function Navbar1({
 
     return (
       <NavigationMenuItem key={item.title}>
-        <Link className="px-4 py-2 hover:text-black" href={item.url}>
+        <Link 
+          className="group inline-flex h-10 w-max items-center justify-center rounded-md bg-transparent px-4 py-2 text-sm font-medium transition-colors hover:bg-gray-100 hover:text-primary focus:bg-gray-100 focus:text-primary focus:outline-none disabled:pointer-events-none disabled:opacity-50" 
+          href={item.url}
+        >
           {item.title}
         </Link>
       </NavigationMenuItem>
@@ -180,25 +149,27 @@ export function Navbar1({
     if (item.items) {
       return (
         <AccordionItem key={item.title} value={item.title}>
-          <AccordionTrigger className="py-2 font-semibold">
+          <AccordionTrigger className="py-2 font-medium">
             {item.title}
           </AccordionTrigger>
           <AccordionContent>
-            {item.items.map((subItem) => (
-              <Link
-                key={subItem.title}
-                className="flex gap-4 p-3 hover:bg-gray-100"
-                href={subItem.url}
-              >
-                {subItem.icon}
-                <div>
-                  <div className="text-sm font-semibold">{subItem.title}</div>
-                  <p className="text-sm text-gray-600">
-                    {subItem.description}
-                  </p>
-                </div>
-              </Link>
-            ))}
+            <div className="flex flex-col space-y-2">
+              {item.items.map((subItem) => (
+                <Link
+                  key={subItem.title}
+                  className="flex items-center gap-3 rounded-md p-2 hover:bg-gray-100"
+                  href={subItem.url}
+                >
+                  <div className="text-primary">{subItem.icon}</div>
+                  <div>
+                    <div className="font-medium">{subItem.title}</div>
+                    <p className="text-sm text-muted-foreground">
+                      {subItem.description}
+                    </p>
+                  </div>
+                </Link>
+              ))}
+            </div>
           </AccordionContent>
         </AccordionItem>
       );
@@ -207,7 +178,7 @@ export function Navbar1({
     return (
       <Link
         key={item.title}
-        className="py-2 font-semibold block"
+        className="py-2 font-medium block hover:text-primary"
         href={item.url}
       >
         {item.title}
@@ -216,16 +187,17 @@ export function Navbar1({
   };
 
   return (
-    <section className="py-4">
-      <div className="container">
+    <header className="sticky top-0 z-50 w-full border-b bg-white/90 backdrop-blur-md">
+      <div className="container px-4 sm:px-6 lg:px-8">
         {/* DESKTOP NAV */}
-        <nav className="hidden lg:flex justify-between items-center">
+        <nav className="hidden lg:flex h-16 items-center justify-between">
           <div className="flex items-center gap-6">
             {/* LOGO */}
-            <Link href={logo.url} className="flex items-center justify-center gap-3">
-              <img src={logo.src} alt={logo.alt} className="mb-3 ml-10 w-32" />
-              <span className="text-lg font-semibold">{logo.title}</span>
+            <Link href={logo.url} className="flex items-center mr-6">
+              <img src={logo.src} alt={logo.alt} className="h-8 w-auto" />
+              {logo.title && <span className="ml-2 text-lg font-semibold">{logo.title}</span>}
             </Link>
+            
             {/* MENU */}
             <NavigationMenu>
               <NavigationMenuList>
@@ -235,7 +207,7 @@ export function Navbar1({
           </div>
 
           {/* RIGHT SIDE - AUTH */}
-          <div className="flex gap-2 ">
+          <div className="flex items-center gap-3">
             {currentUser ? (
               <Button variant="outline" size="sm" onClick={handleLogout}>
                 Logout
@@ -248,58 +220,74 @@ export function Navbar1({
                 <Button asChild size="sm">
                   <Link href={auth.signup.url}>{auth.signup.text}</Link>
                 </Button>
-                
-                
-                
-                
-                
               </>
             )}
           </div>
         </nav>
 
         {/* MOBILE NAV */}
-        <div className="lg:hidden flex justify-end mr-4">
+        <div className="flex h-16 items-center justify-between lg:hidden">
+          {/* Mobile Logo */}
+          <Link href={logo.url} className="flex items-center">
+            <img src={logo.src} alt={logo.alt} className="h-8 w-auto" />
+          </Link>
+          
+          {/* Mobile Menu Button */}
           <Sheet>
             <SheetTrigger asChild>
-              <Button variant="outline" size="icon">
-                <Menu className="size-6" />
+              <Button variant="outline" size="icon" className="h-9 w-9">
+                <Menu className="h-5 w-5" />
+                <span className="sr-only">Toggle menu</span>
               </Button>
             </SheetTrigger>
 
-            <SheetContent>
-              <SheetHeader>
+            <SheetContent side="right">
+              <SheetHeader className="mb-4">
                 <SheetTitle>
-                  <Link href={logo.url} className="flex items-center gap-2">
-                    <img src={logo.src} alt={logo.alt} className="w-44" />
-                    <span className="text-lg font-semibold">{logo.title}</span>
+                  <Link href={logo.url} className="flex items-center">
+                    <img src={logo.src} alt={logo.alt} className="h-8 w-auto" />
+                    {logo.title && <span className="ml-2 text-lg font-semibold">{logo.title}</span>}
                   </Link>
                 </SheetTitle>
               </SheetHeader>
 
-              <div className="my-6 flex flex-col gap-6">
-                <Accordion type="single" collapsible>
+              <div className="flex flex-col space-y-4">
+                <Accordion type="single" collapsible className="w-full">
                   {menu.map(renderMobileMenuItem)}
                 </Accordion>
+                
+                {/* Extra mobile links if provided */}
+                {mobileExtraLinks.length > 0 && (
+                  <div className="mt-6 border-t pt-4">
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+                      {mobileExtraLinks.map((link) => (
+                        <Link
+                          key={link.name}
+                          href={link.url}
+                          className="text-sm text-muted-foreground hover:text-primary"
+                        >
+                          {link.name}
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* MOBILE AUTH BUTTONS */}
-              <div className="mt-4 flex gap-2">
+              <div className="mt-6 flex flex-col space-y-2">
                 {currentUser ? (
-                  <Button variant="outline" size="sm" onClick={handleLogout}>
+                  <Button variant="outline" onClick={handleLogout}>
                     Logout
                   </Button>
                 ) : (
                   <>
-                    <Button asChild variant="outline" size="sm">
+                    <Button asChild variant="outline">
                       <Link href={auth.login.url}>{auth.login.text}</Link>
                     </Button>
-                    <Button asChild size="sm">
+                    <Button asChild>
                       <Link href={auth.signup.url}>{auth.signup.text}</Link>
                     </Button>
-                    
-                    
-                    
                   </>
                 )}
               </div>
@@ -307,6 +295,6 @@ export function Navbar1({
           </Sheet>
         </div>
       </div>
-    </section>
+    </header>
   );
 }
