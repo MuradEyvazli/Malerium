@@ -30,47 +30,73 @@ export default function ProfilePage() {
   const [currentPage, setCurrentPage] = useState(1);
   const postsPerPage = 6;
 
-  useEffect(() => {
-    if (currentUser?._id) {
-      dispatch(fetchFriendRequests());
-      dispatch(fetchFriends());
+  // Update the error handling in your ProfilePage component
+useEffect(() => {
+  if (currentUser?._id) {
+    dispatch(fetchFriendRequests());
+    dispatch(fetchFriends());
+  }
+
+  const fetchProfileAndPosts = async () => {
+    setLoading(true);
+    const token = localStorage.getItem("token");
+
+    // If no token is available, redirect to login
+    if (!token) {
+      router.push("/login");
+      return;
     }
 
-    const fetchProfileAndPosts = async () => {
-      setLoading(true);
-      const token = localStorage.getItem("token");
-
-      try {
-        // 1) Profil Bilgisi
-        const profileRes = await fetch(`/api/auth/profile/${id}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (!profileRes.ok) {
-          if (profileRes.status === 401) {
-            dispatch(clearUser());
-            localStorage.removeItem("token");
-          }
-          throw new Error("Profil verileri çekilemedi");
+    try {
+      // 1) Profile Data
+      const profileRes = await fetch(`/api/auth/profile/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      
+      if (!profileRes.ok) {
+        if (profileRes.status === 401) {
+          // Unauthorized - clear user state and redirect to login
+          dispatch(clearUser());
+          localStorage.removeItem("token");
+          router.push("/login");
+          return; // Prevent further execution
         }
-        const profileData = await profileRes.json();
-        setProfile(profileData.profile);
+        console.error("Failed to fetch profile:", profileRes.status);
+        setProfile(null); // Set profile to null to show the "Profile not found" UI
+        setLoading(false);
+        return; // Prevent further execution
+      }
+      
+      const profileData = await profileRes.json();
+      setProfile(profileData.profile);
 
-        // 2) Kullanıcının Postları
+      // 2) User Posts
+      try {
         const postsRes = await fetch(`/api/auth/user-posts/${id}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        if (!postsRes.ok) throw new Error("Kullanıcı postları çekilemedi");
-        const postsData = await postsRes.json();
-        setUserPosts(postsData.posts || []);
-      } catch (error) {
-        console.error("Profil veya postlar çekilemedi:", error);
-      } finally {
-        setLoading(false);
+        
+        if (postsRes.ok) {
+          const postsData = await postsRes.json();
+          setUserPosts(postsData.posts || []);
+        } else {
+          console.error("Failed to fetch user posts:", postsRes.status);
+          setUserPosts([]);
+        }
+      } catch (postsError) {
+        console.error("Error fetching user posts:", postsError);
+        setUserPosts([]);
       }
-    };
+    } catch (error) {
+      console.error("Error in profile data fetching:", error);
+      setProfile(null);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    fetchProfileAndPosts();
-  }, [id, dispatch, currentUser]);
+  fetchProfileAndPosts();
+}, [id, dispatch, currentUser, router]);
 
   // Yükleniyor Ekranı
   if (loading) {

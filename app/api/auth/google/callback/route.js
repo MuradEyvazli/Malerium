@@ -7,14 +7,14 @@ import User from "@/models/User";
 export async function GET(request) {
   try {
     await dbConnect();
-
     const { searchParams } = new URL(request.url);
     const code = searchParams.get("code");
+    
     if (!code) {
-      // Mutlaka tam URL veya new URL kullanın:
       return NextResponse.redirect("http://localhost:3000/login?error=NoCode");
     }
-
+    
+    // Exchange code for tokens
     const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -26,52 +26,87 @@ export async function GET(request) {
         grant_type: "authorization_code",
       }),
     });
+    
     const data = await tokenRes.json();
-    const { id_token } = data;
-
+    const { id_token, access_token } = data;
+    
     if (!id_token) {
       return NextResponse.redirect("http://localhost:3000/login?error=NoIdToken");
     }
-
-    // id_token decode
+    
+    // Decode the id_token to get user info
     const googleUser = JSON.parse(
       Buffer.from(id_token.split(".")[1], "base64").toString()
     );
-    const email = googleUser.email;
-    const name = googleUser.name || "Google User";
-
-    // Kullanıcı yoksa oluştur
+    
+    console.log("Google User Data:", googleUser);
+    
+    // Extract user information from Google response
+    const { email, name, sub: googleId, picture, given_name, family_name } = googleUser;
+    
+    // Check if user exists in database
     let user = await User.findOne({ email });
-    if (!user) {
+    
+    if (user) {
+      // Update existing user with Google information if needed
+      if (!user.googleId) {
+        user.googleId = googleId;
+        
+        // Update profile info if missing
+        if (!user.avatar && picture) user.avatar = picture;
+        if (!user.name && name) user.name = name;
+        
+        await user.save();
+        console.log("Updated existing user with Google data:", user._id);
+      }
+    } else {
+      // Create new user with Google information
       user = new User({
-        name,
+        name: name || "Google User",
         email,
-        // Artık şemanız password alanını zorunlu istemeyecek veya default: ""
-        password: "",
+        googleId,
+        password: "", // Password not required for OAuth users
+        avatar: picture || "https://images.pexels.com/photos/30469688/pexels-photo-30469688.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1",
+        // Optional: store additional data
+        nickName: given_name,
       });
       await user.save();
+      console.log("Created new user from Google data:", user._id);
     }
-
-    // Kendi JWT token'ınızı oluşturun
+    
+    // Create JWT token
     const token = jwt.sign(
       { id: user._id, email: user.email },
       process.env.JWT_SECRET,
       { expiresIn: "30d" }
     );
-
-    // Cookie'ye token set ederek /blog'a yönlendiriyoruz
+    
+    console.log("Authentication successful, setting token and redirecting");
+    
+    // Set cookie and redirect to blog
     const response = NextResponse.redirect("http://localhost:3000/blog");
+    
+    // Set HTTP-only cookie for server-side auth
     response.cookies.set("token", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
-      maxAge: 60 * 60 * 24 * 30,
+      sameSite: "lax",
+      path: "/",
+      maxAge: 60 * 60 * 24 * 30, // 30 days
     });
-
+    
+    // Also store in localStorage via a non-HttpOnly cookie for client-side access
+    response.cookies.set("clientToken", token, {
+      httpOnly: false,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: 60 * 60 * 24 * 30, // 30 days
+    });
+    
     return response;
   } catch (error) {
     console.error("Google callback error:", error);
-    // new URL ile tam yönlendirme
     return NextResponse.redirect(
       new URL("/login?error=Google+OAuth+failed", request.url)
     );

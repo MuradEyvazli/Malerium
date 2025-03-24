@@ -713,7 +713,7 @@ const ColorWheelPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 font-sans">
+    <div className="min-h-screen bg-white font-sans">
       {/* Toast notification */}
       <Toast
         visible={toast.visible}
@@ -726,19 +726,19 @@ const ColorWheelPage = () => {
       <canvas ref={canvasRef} className="hidden" />
       
       {/* Header */}
-      <header className="bg-gradient-to-r from-black to-gray-800 text-white py-4">
+      <header className="py-4">
         <div className="container mx-auto px-4 flex items-center justify-between">
-          <h1 className="text-2xl font-bold tracking-tight">Designer Color Studio</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-black ">Malerium Color Studio</h1>
           <div className="flex gap-4">
             <button
-              className={`flex items-center px-4 py-2 rounded-full text-sm transition-colors ${currentPage === "colorPicker" ? "bg-white text-indigo-600 font-semibold" : "bg-indigo-700 hover:bg-indigo-800"}`}
+              className={`flex items-center px-4 py-2 rounded-full text-sm transition-colors ${currentPage === "colorPicker" ? "bg-white text-indigo-600 font-semibold" : "bg-indigo-700 text-white hover:bg-indigo-800"}`}
               onClick={() => flipPage("colorPicker")}
             >
               <Palette size={16} className="mr-2" />
               Renk Seçici
             </button>
             <button
-              className={`flex items-center px-4 py-2 rounded-full text-sm transition-colors ${currentPage === "colorPicker" ? "bg-white text-indigo-600 font-semibold" : "bg-indigo-700 hover:bg-indigo-800"}`}
+              className={`flex items-center px-4 py-2 rounded-full text-sm transition-colors ${currentPage === "colorPicker" ? "bg-white text-indigo-600 font-semibold" : "bg-indigo-700 text-white hover:bg-indigo-800"}`}
               onClick={() => flipPage("imageExtractor")}
             >
               <ImageIcon size={16} className="mr-2" />
@@ -1386,37 +1386,6 @@ const ColorWheelPage = () => {
           </div>
         </div>
       </main>
-      
-      {/* Footer */}
-      <footer className="bg-gray-900 text-white py-8 mt-12">
-        <div className="container mx-auto px-4">
-          <div className="flex flex-col md:flex-row justify-between items-center">
-            <div>
-              <h2 className="text-xl font-bold">Designer Color Studio</h2>
-              <p className="text-gray-400 text-sm mt-1">The perfect color tool for designers</p>
-            </div>
-            
-            <div className="mt-4 md:mt-0">
-              <div className="flex items-center space-x-4">
-                <a href="#" className="text-gray-400 hover:text-white transition-colors">
-                  Features
-                </a>
-                <a href="#" className="text-gray-400 hover:text-white transition-colors">
-                  Documentation
-                </a>
-                <a href="#" className="text-gray-400 hover:text-white transition-colors">
-                  Support
-                </a>
-              </div>
-            </div>
-          </div>
-          
-          <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-500 text-sm">
-            &copy; {new Date().getFullYear()} Designer Color Studio. All rights reserved.
-          </div>
-        </div>
-      </footer>
-      
       {/* CSS for page flip animations */}
       <style jsx>{`
         .perspective-1000 {

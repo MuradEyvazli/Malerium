@@ -801,19 +801,30 @@ const handlePostView = async (postId) => {
             transition={{ delay: 0.7, duration: 0.5 }}
             className="mt-8 flex flex-wrap justify-center gap-4"
           >
-            <a 
-              href="#featured-posts" 
+            <Link 
+              href="/color-wheel" 
               className="px-6 py-3 rounded-full bg-white text-yellow-600 font-medium hover:bg-yellow-50 transition shadow-lg hover:shadow-xl transform hover:-translate-y-1"
             >
-              Öne Çıkan Yazılar
-            </a>
-            
+              Color-Wheel
+            </Link>
+            <Link 
+              href="/color-wheel/color-search" 
+              className="px-6 py-3 rounded-full bg-white text-yellow-600 font-medium hover:bg-yellow-50 transition shadow-lg hover:shadow-xl transform hover:-translate-y-1"
+            >
+              Image-Search
+            </Link>
+            <Link 
+              href="/products/fonts" 
+              className="px-6 py-3 rounded-full bg-white text-yellow-600 font-medium hover:bg-yellow-50 transition shadow-lg hover:shadow-xl transform hover:-translate-y-1"
+            >
+              Font-Search
+            </Link>
             <Link
               href="/blog/add-post"
               className="px-6 py-3 rounded-full bg-yellow-500 text-white font-medium hover:bg-yellow-600 transition shadow-lg hover:shadow-xl transform hover:-translate-y-1 flex items-center gap-2"
             >
               <HiPlus className="h-5 w-5" />
-              Yazı Ekle
+              Add Project
             </Link>
           </motion.div>
         </div>
@@ -847,7 +858,7 @@ const handlePostView = async (postId) => {
                 <div>
                   <p className="font-medium text-gray-800 group-hover:text-yellow-600 transition-colors">{currentUser.name}</p>
                   <p className="text-xs text-gray-500">
-                    {myPosts?.length || 0} yazı • {friends?.length || 0} arkadaş
+                    {myPosts?.length || 0} post's • {friends?.length || 0} friend's
                   </p>
                 </div>
               </Link>
@@ -855,17 +866,17 @@ const handlePostView = async (postId) => {
               <div className="flex items-center space-x-6">
                 <Link href={`/profile/${currentUser._id}`} className="flex flex-col items-center hover:text-yellow-600 transition-colors">
                   <span className="text-xl font-bold text-yellow-600">{myPosts?.reduce((acc, post) => acc + (post.likes?.length || 0), 0)}</span>
-                  <span className="text-xs text-gray-500">Beğeni</span>
+                  <span className="text-xs text-gray-500">Like</span>
                 </Link>
                 
                 <Link href={`/profile/${currentUser._id}`} className="flex flex-col items-center hover:text-purple-600 transition-colors">
                   <span className="text-xl font-bold text-purple-600">{myPosts?.reduce((acc, post) => acc + (post.comments?.length || 0), 0)}</span>
-                  <span className="text-xs text-gray-500">Yorum</span>
+                  <span className="text-xs text-gray-500">Comment</span>
                 </Link>
                 
                 <Link href={`/profile/${currentUser._id}`} className="flex flex-col items-center hover:text-purple-600 transition-colors">
                   <span className="text-xl font-bold text-purple-600">{posts?.length || 0}</span>
-                  <span className="text-xs text-gray-500">Toplam Post</span>
+                  <span className="text-xs text-gray-500">Posts</span>
                 </Link>
                 
                 <Link 
@@ -876,7 +887,7 @@ const handlePostView = async (postId) => {
                     <path d="M10 12.5a2.5 2.5 0 100-5 2.5 2.5 0 000 5z" />
                     <path fillRule="evenodd" d="M.664 10.59a1.651 1.651 0 010-1.186A10.004 10.004 0 0110 3c4.257 0 7.893 2.66 9.336 6.41.147.381.146.804 0 1.186A10.004 10.004 0 0110 17c-4.257 0-7.893-2.66-9.336-6.41zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
                   </svg>
-                  Profil Düzenle
+                  Edit Profile
                 </Link>
               </div>
             </div>
@@ -893,7 +904,7 @@ const handlePostView = async (postId) => {
             className="fixed z-40 bottom-24 left-1/2 transform -translate-x-1/2"
           >
             <div className="bg-black/70 backdrop-blur-md text-white px-4 py-2 rounded-full flex items-center gap-2 shadow-lg">
-              <span className="text-sm font-medium">Premium Üyelik Gösteriliyor</span>
+              <span className="text-sm font-medium">Showing Premium Membership</span>
               <ChevronDown className="w-5 h-5 animate-bounce" />
             </div>
           </motion.div>
@@ -911,11 +922,11 @@ const handlePostView = async (postId) => {
               viewport={{ once: true }}
               className="text-3xl font-bold text-gray-900 mb-2"
             >
-              VIP Premium İçerikler
+              VIP Premium Contents
             </motion.h2>
             <div className="w-20 h-1 bg-gradient-to-r from-yellow-500 to-purple-600 mx-auto rounded-full"></div>
             <p className="text-gray-600 mt-4 max-w-2xl mx-auto">
-              Premium üyelerimize özel hazırlanmış içerikler ve fırsatlar
+            Specially designed contents and opportunities for our premium members
             </p>
           </div>
           
@@ -956,7 +967,7 @@ const handlePostView = async (postId) => {
                   <div className="p-6 flex-grow flex flex-col">
                     <div className="flex items-center gap-2 mb-3">
                       <span className="px-3 py-1 text-xs font-medium bg-purple-100 text-purple-800 rounded-full">
-                        VIP İçerik
+                      VIP Content
                       </span>
                     </div>
                     
@@ -1007,7 +1018,7 @@ const handlePostView = async (postId) => {
           </motion.div>
           <div className="flex justify-center mt-16 mb-[-100px]">
           <button onClick={scrollToPremium} className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-yellow-500 to-purple-600 text-white rounded-full font-medium hover:from-yellow-600 hover:to-purple-700 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-1">
-         <span>Premium Üyelik Al</span>
+         <span>Get Premium Membership</span>
          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
           <path fillRule="evenodd" d="M10.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L12.586 11H5a1 1 0 110-2h7.586l-2.293-2.293a1 1 0 010-1.414z" clipRule="evenodd" />
          </svg>
@@ -1053,7 +1064,7 @@ const handlePostView = async (postId) => {
               viewport={{ once: true }}
               className="text-3xl font-bold text-gray-900 mb-2 text-left"
             >
-              Tüm Blog Yazıları
+              All Blog Posts
             </motion.h2>
             <div className="w-20 h-1 bg-yellow-500 rounded-full"></div>
           </div>
@@ -1062,16 +1073,16 @@ const handlePostView = async (postId) => {
             <div className="bg-white rounded-xl shadow-sm p-10 text-center">
               <HiOutlineSearch className="w-16 h-16 text-gray-300 mx-auto mb-4" />
               <h3 className="text-xl font-medium text-gray-800 mb-2">
-                Bu kategori için gönderi bulunamadı
+              No posts found for this category
               </h3>
               <p className="text-gray-500 mb-6">
-                Farklı bir kategori seçmeyi veya tüm gönderileri görüntülemeyi deneyebilirsiniz.
+              You can try selecting a different category or viewing all posts.
               </p>
               <button
                 onClick={() => setSelectedCategory("All")}
                 className="px-5 py-2 bg-yellow-500 text-white rounded-full text-sm font-medium hover:bg-yellow-600 transition"
               >
-                Tüm Gönderileri Göster
+                Show All Posts
               </button>
             </div>
           ) : (
@@ -1127,12 +1138,12 @@ const handlePostView = async (postId) => {
                   <div className="p-6 flex-grow flex flex-col">
                     <Link href={`/blog/${post._id}`}>
                       <h3 className="text-xl font-bold mb-2 text-gray-900 hover:text-yellow-600 transition-colors line-clamp-2 min-h-[3.5rem]">
-                        {post.title || "Başlıksız Gönderi"}
+                        {post.title || "Untitled Post"}
                       </h3>
                     </Link>
                     
                     <p className="text-gray-600 text-sm mb-4 line-clamp-2 min-h-[2.5rem]">
-                      {post.description || post.content?.substring(0, 120) || "İçerik yok"}
+                      {post.description || post.content?.substring(0, 120) || "No Content"}
                     </p>
                     
                     <div className="flex items-center justify-between mb-4 mt-auto">
@@ -1143,7 +1154,7 @@ const handlePostView = async (postId) => {
                         >
                           <Image
                             src={post.author?.avatar || "/fallback-avatar.png"}
-                            alt={post.author?.name || "Anonim Yazar"}
+                            alt={post.author?.name || "Anonim User"}
                             width={32}
                             height={32}
                             className="w-8 h-8 rounded-full object-cover border border-gray-200 group-hover:scale-105 transition-transform"
@@ -1155,7 +1166,7 @@ const handlePostView = async (postId) => {
                           </div>
                         </div>
                         <span className="text-sm font-medium text-gray-700">
-                          {post.author?.name || "Anonim Yazar"}
+                          {post.author?.name || "Anonim User"}
                         </span>
                       </div>
                       <span className="text-xs text-gray-500">
@@ -1204,7 +1215,7 @@ const handlePostView = async (postId) => {
     onClick={() => handlePostView(post._id)}
     className="text-sm font-medium text-yellow-600 hover:text-yellow-700 transition-colors hover:underline"
   >
-    Devamını Oku
+    Read more
   </Link>
 </div>
                     
@@ -1226,7 +1237,7 @@ const handlePostView = async (postId) => {
                           onClick={() => handleComment(post._id)}
                           className="bg-yellow-500 text-white text-sm px-4 py-2 rounded-full hover:bg-yellow-600 transition"
                         >
-                          Gönder
+                          Send
                         </button>
                       </motion.div>
                     )}
@@ -1311,7 +1322,7 @@ const handlePostView = async (postId) => {
                 viewport={{ once: true }}
                 className="text-3xl font-bold text-gray-900 mb-2 text-left"
               >
-                Senin Yazıların
+                My Posts
               </motion.h2>
               <div className="w-20 h-1 bg-yellow-500 rounded-full"></div>
             </div>
@@ -1322,17 +1333,17 @@ const handlePostView = async (postId) => {
                   <HiPlus className="w-10 h-10 text-purple-600" />
                 </div>
                 <h3 className="text-xl font-medium text-gray-800 mb-2">
-                  Henüz yazı paylaşmamışsın
+                You have not shared a post yet
                 </h3>
                 <p className="text-gray-500 mb-6 max-w-md mx-auto">
-                  İlk yazını oluşturarak kendi hikayeni anlatmaya başla ve toplulukla paylaş.
+                Start telling your story by creating your first post and share it with the community.
                 </p>
                 <Link
                   href="/blog/add-post"
                   className="px-6 py-3 bg-yellow-500 text-white rounded-full text-sm font-medium hover:bg-yellow-600 transition inline-flex items-center gap-2"
                 >
                   <HiPlus className="w-5 h-5" />
-                  İlk Yazını Oluştur
+                  Create Your First Post
                 </Link>
               </div>
             ) : (
@@ -1414,7 +1425,7 @@ const handlePostView = async (postId) => {
                               </div>
                             </div>
                             <span className="text-sm font-medium text-gray-700">
-                              Sen
+                              Me
                             </span>
                           </div>
                           <span className="text-xs text-gray-500">
@@ -1450,7 +1461,7 @@ const handlePostView = async (postId) => {
     onClick={() => handlePostView(post._id)}
     className="text-sm font-medium text-yellow-600 hover:text-yellow-700 transition-colors hover:underline"
   >
-    Düzenle
+    Edit
   </Link>
 </div>
                       </div>
@@ -1478,13 +1489,13 @@ const handlePostView = async (postId) => {
                           </div>
                           
                           <div className="p-6 flex-grow flex flex-col items-center justify-center text-center">
-                            <p className="text-yellow-500 font-medium mb-2">Yeni yazı ekle</p>
+                            <p className="text-yellow-500 font-medium mb-2">Add new post</p>
                             <Link
                               href="/blog/add-post"
                               className="px-4 py-2 bg-yellow-100 text-yellow-600 rounded-full text-sm font-medium hover:bg-yellow-200 transition inline-flex items-center gap-2 mt-2"
                             >
                               <HiPlus className="w-4 h-4" />
-                              Yazı Oluştur
+                              Create Post
                             </Link>
                           </div>
                         </motion.div>
@@ -1510,13 +1521,13 @@ const handlePostView = async (postId) => {
                       </div>
                       
                       <div className="p-6 flex-grow flex flex-col items-center justify-center text-center">
-                        <p className="text-yellow-500 font-medium mb-2">Yeni yazı ekle</p>
+                        <p className="text-yellow-500 font-medium mb-2">Add new post</p>
                         <Link
                           href="/blog/add-post"
                           className="px-4 py-2 bg-yellow-100 text-yellow-600 rounded-full text-sm font-medium hover:bg-yellow-200 transition inline-flex items-center gap-2 mt-2"
                         >
                           <HiPlus className="w-4 h-4" />
-                          Yazı Oluştur
+                          Create Post
                         </Link>
                       </div>
                     </motion.div>
@@ -1528,7 +1539,7 @@ const handlePostView = async (postId) => {
                     href={`/blog/user/${currentUser._id}`}
                     className="px-6 py-3 bg-white border border-yellow-200 text-yellow-600 rounded-full text-sm font-medium hover:bg-yellow-50 transition shadow-sm"
                   >
-                    Tüm Yazılarını Gör
+                    See All Posts
                   </Link>
                 </div>
               </>
@@ -1557,7 +1568,7 @@ const handlePostView = async (postId) => {
               viewport={{ once: true }}
               className="text-3xl font-bold text-gray-900 mb-2 text-left"
             >
-              Tasarımcı Documentasyonları
+              Designer Documentation
             </motion.h2>
             <div className="w-20 h-1 bg-purple-600 rounded-full"></div>
           </div>

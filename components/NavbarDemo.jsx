@@ -82,13 +82,6 @@ const navbarConfig = {
       url: "/blog",
     },
   ],
-  // These links will appear in the mobile menu only
-  mobileExtraLinks: [
-    { name: "Press", url: "/press" },
-    { name: "Contact", url: "/contact" },
-    { name: "Imprint", url: "/imprint" },
-    { name: "Sitemap", url: "/sitemap" },
-  ],
   auth: {
     login: { text: "Log in", url: "/login" },
     signup: { text: "Sign up", url: "/signup" },

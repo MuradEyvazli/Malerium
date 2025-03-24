@@ -1,4 +1,4 @@
-// /models/User.js
+// models/User.js
 import mongoose from 'mongoose';
 import bcrypt from 'bcrypt';
 
@@ -15,9 +15,17 @@ const UserSchema = new mongoose.Schema(
     },
     password: {
       type: String,
-      required: [true, 'Password is required'],
+      // Only require password for local authentication
+      required: function() {
+        return !this.googleId;
+      },
     },
-    // Ek profil alanları
+    // OAuth fields
+    googleId: {
+      type: String,
+      default: null,
+    },
+    // Existing profile fields
     avatar: {
       type: String,
       default:
@@ -31,8 +39,7 @@ const UserSchema = new mongoose.Schema(
       type: String,
       default: '',
     },
-
-    // Yeni eklenen alanlar
+    // Other fields
     nickName: {
       type: String,
       default: '',
@@ -49,15 +56,15 @@ const UserSchema = new mongoose.Schema(
       type: String,
       default: '',
     },
-    // İsterseniz timeZone vb. başka alanlar da ekleyebilirsiniz.
   },
   { timestamps: true }
 );
 
-// Şifre hashlemesi, parola kaydedilmeden veya güncellenmeden önce otomatik yapılır.
+// Password hashing - only runs if password exists and was modified
 UserSchema.pre('save', async function (next) {
-  if (!this.isModified('password')) return next();
-
+  // Skip hashing if no password or password wasn't modified
+  if (!this.isModified('password') || !this.password) return next();
+  
   try {
     const salt = await bcrypt.genSalt(10);
     this.password = await bcrypt.hash(this.password, salt);
@@ -67,7 +74,7 @@ UserSchema.pre('save', async function (next) {
   }
 });
 
-// Parolayı JSON'a dönüştürürken sil
+// Remove password from JSON responses
 UserSchema.methods.toJSON = function () {
   const user = this.toObject();
   delete user.password;
