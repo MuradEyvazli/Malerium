@@ -117,70 +117,44 @@ export function SignUpPage() {
 
               <div className="space-y-5">
                 <div>
-                  <label className="block text-sm font-medium text-white/80 mb-1.5">Full Name</label>
-                  <div className="relative">
-                    <motion.div 
-                      className="absolute inset-0 rounded-lg"
-                      animate={{ 
-                        boxShadow: name ? "0 0 0 1px rgba(246, 187, 92, 0.5)" : "none" 
-                      }}
-                      transition={{ duration: 0.2 }}
-                    />
-                    <input
-                      type="text"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      className="block w-full px-4 py-3.5 bg-white/10 border border-white/10 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 text-white placeholder-white/40"
-                      placeholder="John Doe"
-                    />
-                  </div>
+                  <label htmlFor="name-input" className="block text-sm font-medium text-white/80 mb-1.5">Full Name</label>
+                  <input
+                    id="name-input"
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="block w-full px-4 py-3.5 bg-white/10 border border-white/10 rounded-lg focus:outline-none focus:ring-1 focus:ring-orange-500 text-white placeholder-white/40"
+                    placeholder="John Doe"
+                  />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-white/80 mb-1.5">Email</label>
-                  <div className="relative">
-                    <motion.div 
-                      className="absolute inset-0 rounded-lg"
-                      animate={{ 
-                        boxShadow: email ? "0 0 0 1px rgba(246, 184, 92, 0.5)" : "none" 
-                      }}
-                      transition={{ duration: 0.2 }}
-                    />
-                    <input
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="block w-full px-4 py-3.5 bg-white/10 border border-white/10 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 text-white placeholder-white/40"
-                      placeholder="your.email@example.com"
-                    />
-                  </div>
+                  <label htmlFor="email-input" className="block text-sm font-medium text-white/80 mb-1.5">Email</label>
+                  <input
+                    id="email-input"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="block w-full px-4 py-3.5 bg-white/10 border border-white/10 rounded-lg focus:outline-none focus:ring-1 focus:ring-orange-500 text-white placeholder-white/40"
+                    placeholder="your.email@example.com"
+                  />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-white/80 mb-1.5">Password</label>
-                  <div className="relative">
-                    <motion.div 
-                      className="absolute inset-0 rounded-lg"
-                      animate={{ 
-                        boxShadow: password ? "0 0 0 1px rgba(246, 184, 92, 0.5)" : "none" 
-                      }}
-                      transition={{ duration: 0.2 }}
-                    />
-                    <input
-                      type="password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="block w-full px-4 py-3.5 bg-white/10 border border-white/10 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 text-white placeholder-white/40"
-                      placeholder="••••••••"
-                    />
-                  </div>
+                  <label htmlFor="password-input" className="block text-sm font-medium text-white/80 mb-1.5">Password</label>
+                  <input
+                    id="password-input"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="block w-full px-4 py-3.5 bg-white/10 border border-white/10 rounded-lg focus:outline-none focus:ring-1 focus:ring-orange-500 text-white placeholder-white/40"
+                    placeholder="••••••••"
+                  />
                 </div>
 
-                <motion.button
+                <button
                   onClick={handleRegister}
-                  className="w-full py-3.5 bg-gradient-to-r from-orange-600 to-orange-700 text-white rounded-lg font-medium relative overflow-hidden"
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
+                  className="w-full py-3.5 bg-gradient-to-r from-orange-600 to-orange-700 text-white rounded-lg font-medium relative overflow-hidden transition-transform hover:scale-[1.02] active:scale-[0.98]"
                   disabled={isLoading}
                 >
                   {isLoading ? (
@@ -191,13 +165,7 @@ export function SignUpPage() {
                   ) : (
                     <span>Create Account</span>
                   )}
-                  <motion.div 
-                    className="absolute inset-0 bg-gradient-to-r from-orange-600/80 to-orange-600/80"
-                    initial={{ x: '100%' }}
-                    whileHover={{ x: 0 }}
-                    transition={{ duration: 0.4 }}
-                  />
-                </motion.button>
+                </button>
 
                 <div className="relative flex items-center py-2">
                   <div className="flex-grow bg-white/10 h-px"></div>
@@ -205,17 +173,15 @@ export function SignUpPage() {
                   <div className="flex-grow bg-white/10 h-px"></div>
                 </div>
 
-                <motion.button
+                <button
                   onClick={handleGoogleSignUp}
-                  className="w-full py-3.5 bg-white/10 border border-white/10 hover:bg-white/15 text-white rounded-lg font-medium flex items-center justify-center gap-2"
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
+                  className="w-full py-3.5 bg-white/10 border border-white/10 hover:bg-white/15 text-white rounded-lg font-medium flex items-center justify-center gap-2 transition-transform hover:scale-[1.02] active:scale-[0.98]"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16">
                     <path d="M8.159 8.204v3.272h4.677c-.19 1.236-1.411 3.62-4.677 3.62-2.81 0-5.1-2.312-5.1-5.166 0-2.853 2.29-5.166 5.1-5.166 1.6 0 2.67.676 3.288 1.25l2.266-2.213C11.856 2.476 10.168 1.5 8.158 1.5 4.605 1.5 1.66 4.513 1.66 8.031c0 3.52 2.945 6.533 6.497 6.533 3.774 0 6.263-2.66 6.263-6.39 0-.43-.046-.756-.104-1.07H8.159z" />
                   </svg>
                   Google
-                </motion.button>
+                </button>
               </div>
 
               <p className="text-center text-white/60 text-sm mt-8">
