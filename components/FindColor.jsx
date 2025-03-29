@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { HexColorPicker } from "react-colorful";
-import { Copy, Search, Download, Palette, Camera, X } from "lucide-react";
+import { Copy, Search, Download, Palette, Camera, X, RefreshCw } from "lucide-react";
 import { useDebouncedCallback } from "use-debounce";
 import { extractColors } from "extract-colors";
 
@@ -38,6 +38,13 @@ const BUBBLES = [
   { width: 125, height: 125, left: "5%", top: "55%", x: 15, y: 20 },
   { width: 145, height: 145, left: "70%", top: "5%", x: -20, y: 40 },
   { width: 115, height: 115, left: "25%", top: "65%", x: 30, y: -30 },
+];
+
+// Random search terms for initial load
+const RANDOM_SEARCH_TERMS = [
+  "nature", "cityscape", "abstract", "animals", "beach", 
+  "mountains", "flowers", "architecture", "food", "people",
+  "technology", "travel", "art", "water", "sky"
 ];
 
 // Client-side only animated bubbles component
@@ -79,25 +86,97 @@ const AnimatedBubbles = () => {
   );
 };
 
-export default function ColorSearchPage() {
+// Toast notification component
+const Toast = ({ message, visible, onClose }) => {
+  useEffect(() => {
+    if (visible) {
+      const timer = setTimeout(() => {
+        onClose();
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [visible, onClose]);
+
+  return (
+    <AnimatePresence>
+      {visible && (
+        <motion.div
+          className="fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-slate-800 text-white px-4 py-2 rounded-lg shadow-lg z-50 flex items-center"
+          initial={{ opacity: 0, y: 50 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0 }}
+        >
+          <span>{message}</span>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+};
+
+export default function Page() {
   const [query, setQuery] = useState("");
   const [images, setImages] = useState([]);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
   const [error, setError] = useState(null);
   const [colorPickerOpen, setColorPickerOpen] = useState(false);
   const [selectedColor, setSelectedColor] = useState("#6366F1");
   const [activeImageColors, setActiveImageColors] = useState(null);
   const [previewImage, setPreviewImage] = useState(null);
+  const [toast, setToast] = useState({ visible: false, message: "" });
 
   const observer = useRef();
   const searchInputRef = useRef(null);
+
+  // Show toast notification
+  const showToast = (message) => {
+    setToast({ visible: true, message });
+  };
+
+  // Hide toast notification
+  const hideToast = () => {
+    setToast({ visible: false, message: "" });
+  };
+
+  // Fetch random images on initial load
+  const fetchRandomImages = async () => {
+    setInitialLoading(true);
+    try {
+      // Select a random search term
+      const randomTerm = RANDOM_SEARCH_TERMS[Math.floor(Math.random() * RANDOM_SEARCH_TERMS.length)];
+      
+      const response = await fetch(`/api/search?q=${encodeURIComponent(randomTerm)}&page=1`);
+      if (!response.ok) {
+        throw new Error("Failed to fetch initial images");
+      }
+      
+      const data = await response.json();
+      setImages(data.results);
+      
+      // Set the query to match what was searched
+      setQuery(randomTerm);
+      
+    } catch (err) {
+      console.error("Error fetching random images:", err);
+      setError("Could not load initial images");
+    } finally {
+      setInitialLoading(false);
+    }
+  };
 
   // Fetch images with a debounce to avoid too many API calls
   const debouncedFetch = useDebouncedCallback((q, pageNum) => {
     fetchImages(q, pageNum);
   }, 500);
+
+  // Function to fetch more random images
+  const fetchMoreRandomImages = () => {
+    const randomTerm = RANDOM_SEARCH_TERMS[Math.floor(Math.random() * RANDOM_SEARCH_TERMS.length)];
+    setQuery(randomTerm);
+    handleSearch(randomTerm);
+  };
 
   // Function to fetch images from API (with minimum loading time of 1.5 seconds)
   const fetchImages = async (q, pageNum) => {
@@ -208,7 +287,7 @@ export default function ColorSearchPage() {
   // Copy color to clipboard
   const copyColorToClipboard = (color) => {
     navigator.clipboard.writeText(color);
-    // Show a toast message (implementation not included)
+    showToast(`Copied ${color} to clipboard`);
   };
 
   // Download color palette as JSON
@@ -230,6 +309,8 @@ export default function ColorSearchPage() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    
+    showToast("Palette downloaded successfully");
   };
 
   // Intersection Observer for infinite scrolling
@@ -255,6 +336,11 @@ export default function ColorSearchPage() {
     fetchImages(query, page);
   }, [page]);
 
+  // Load random images on initial render
+  useEffect(() => {
+    fetchRandomImages();
+  }, []);
+
   // Handle keyboard shortcut to focus search
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -271,8 +357,15 @@ export default function ColorSearchPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-slate-100 text-slate-900">
+      {/* Toast Notification */}
+      <Toast 
+        message={toast.message}
+        visible={toast.visible}
+        onClose={hideToast}
+      />
+      
       {/* Hero Section with Animated Background */}
-      <div className="relative overflow-hidden bg-gradient-to-r from-gray-500 via-gray-500 to-yellow-500 h-96 mb-16">
+      <div className="relative overflow-hidden bg-gradient-to-r from-gray-500 via-gray-500 to-yellow-500 h-80 md:h-96 mb-8 md:mb-16">
         <div className="absolute inset-0" style={{ background: "url('/noise.svg') repeat", opacity: 0.1 }}></div>
         
         {/* Client-side only animated bubbles */}
@@ -281,7 +374,7 @@ export default function ColorSearchPage() {
         {/* Content */}
         <div className="relative z-10 container mx-auto px-4 h-full flex flex-col justify-center items-center text-white">
           <motion.h1
-            className="text-5xl md:text-6xl font-bold mb-4 text-center"
+            className="text-4xl sm:text-5xl md:text-6xl font-bold mb-3 md:mb-4 text-center"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
@@ -290,7 +383,7 @@ export default function ColorSearchPage() {
           </motion.h1>
           
           <motion.p
-            className="text-xl md:text-2xl text-center max-w-2xl mx-auto mb-8 text-white/80"
+            className="text-lg sm:text-xl md:text-2xl text-center max-w-2xl mx-auto mb-5 md:mb-8 text-white/80 px-2"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
@@ -300,7 +393,7 @@ export default function ColorSearchPage() {
           
           {/* Search Bar */}
           <motion.div
-            className="w-full max-w-2xl relative"
+            className="w-full max-w-2xl relative px-4"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.4 }}
@@ -313,22 +406,24 @@ export default function ColorSearchPage() {
                 onChange={(e) => setQuery(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleSearch()}
                 placeholder="Search by color, mood, or theme..."
-                className="w-full px-6 py-4 pr-12 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-white/30 text-lg"
+                className="w-full px-4 sm:px-6 py-3 sm:py-4 pr-12 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-white/30 text-base sm:text-lg"
               />
               
               <button
                 onClick={() => handleSearch()}
                 className="absolute right-4 text-white/70 hover:text-white"
+                aria-label="Search"
               >
                 <Search size={20} />
               </button>
               
               <button
                 onClick={() => setColorPickerOpen(!colorPickerOpen)}
-                className="absolute right-16 flex items-center justify-center"
+                className="absolute right-14 sm:right-16 flex items-center justify-center"
+                aria-label="Color Picker"
               >
                 <div
-                  className="w-6 h-6 rounded-full border-2 border-white/30"
+                  className="w-5 h-5 sm:w-6 sm:h-6 rounded-full border-2 border-white/30"
                   style={{ backgroundColor: selectedColor }}
                 ></div>
               </button>
@@ -338,7 +433,7 @@ export default function ColorSearchPage() {
             <AnimatePresence>
               {colorPickerOpen && (
                 <motion.div
-                  className="absolute mt-2 right-16 bg-white rounded-lg shadow-xl p-4 z-20"
+                  className="absolute mt-2 right-8 sm:right-16 bg-white rounded-lg shadow-xl p-3 sm:p-4 z-20"
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
@@ -346,10 +441,10 @@ export default function ColorSearchPage() {
                 >
                   <HexColorPicker color={selectedColor} onChange={setSelectedColor} />
                   <div className="mt-3 flex items-center justify-between">
-                    <div className="text-slate-800 font-mono">{selectedColor}</div>
+                    <div className="text-slate-800 font-mono text-sm sm:text-base">{selectedColor}</div>
                     <button
                       onClick={() => handleColorSelect(selectedColor)}
-                      className="px-3 py-1 bg-indigo-500 text-white text-sm rounded-md hover:bg-indigo-600"
+                      className="px-2 sm:px-3 py-1 bg-indigo-500 text-white text-xs sm:text-sm rounded-md hover:bg-indigo-600"
                     >
                       Search
                     </button>
@@ -359,7 +454,7 @@ export default function ColorSearchPage() {
             </AnimatePresence>
             
             <div className="text-xs text-white/60 mt-2 text-center">
-              Press <kbd className="px-2 py-0.5 bg-white/10 rounded-md mx-1">⌘ K</kbd> to search
+              Press <kbd className="px-1 sm:px-2 py-0.5 bg-white/10 rounded-md mx-1">⌘ K</kbd> to search
             </div>
           </motion.div>
         </div>
@@ -368,20 +463,20 @@ export default function ColorSearchPage() {
       {/* Popular Tags */}
       <div className="container mx-auto px-4 -mt-8">
         <motion.div
-          className="bg-white rounded-xl shadow-lg p-4 flex flex-wrap items-center justify-center gap-2 mb-8"
+          className="bg-white rounded-xl shadow-lg p-3 sm:p-4 flex flex-wrap items-center justify-center gap-1 sm:gap-2 mb-6 sm:mb-8"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.5 }}
         >
-          <span className="text-sm text-slate-400 mr-2">Popular:</span>
+          <span className="text-xs sm:text-sm text-slate-400 mr-1 sm:mr-2">Popular:</span>
           {POPULAR_QUERIES.map((tag) => (
             <button
               key={tag.name}
               onClick={() => handlePopularClick(tag)}
-              className="flex items-center gap-1.5 text-sm px-3 py-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-full transition-all group"
+              className="flex items-center gap-1 sm:gap-1.5 text-xs sm:text-sm px-2 sm:px-3 py-1 sm:py-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-full transition-all group"
             >
               <div
-                className="w-3 h-3 rounded-full"
+                className="w-2 h-2 sm:w-3 sm:h-3 rounded-full"
                 style={{ backgroundColor: tag.color }}
               ></div>
               <span>{tag.name}</span>
@@ -390,8 +485,19 @@ export default function ColorSearchPage() {
         </motion.div>
       </div>
       
+      {/* Random Images Button */}
+      <div className="container mx-auto px-4 mb-4 flex justify-center">
+        <button
+          onClick={fetchMoreRandomImages}
+          className="flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 transition-colors text-sm"
+        >
+          <RefreshCw size={16} />
+          <span>Refresh with Random Images</span>
+        </button>
+      </div>
+      
       {/* Loading State */}
-      {loading && (
+      {(loading || initialLoading) && (
         <div className="container mx-auto px-4 mt-6 text-center">
           <motion.div
             className="inline-flex items-center gap-2 px-4 py-2 bg-white/80 backdrop-blur-sm rounded-full shadow-md"
@@ -415,8 +521,8 @@ export default function ColorSearchPage() {
       )}
       
       {/* Image Grid */}
-      <div className="container mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+      <div className="container mx-auto px-4 py-4 sm:py-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
           {images.map((img, index) => {
             const isLastElement = images.length === index + 1;
             
@@ -434,6 +540,7 @@ export default function ColorSearchPage() {
                     src={img.small}
                     alt={img.alt_description || "Unsplash image"}
                     className="w-full h-full object-cover transition-transform duration-700 ease-in-out group-hover:scale-105"
+                    loading="lazy"
                   />
                   
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
@@ -441,13 +548,14 @@ export default function ColorSearchPage() {
                   <button
                     onClick={() => handleImageClick(img)}
                     className="absolute bottom-3 right-3 bg-white/90 backdrop-blur-sm text-slate-700 p-2 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 hover:bg-white"
+                    aria-label="View color palette"
                   >
                     <Palette size={18} />
                   </button>
                 </div>
                 
                 <div className="p-3">
-                  <p className="text-slate-700 line-clamp-1 text-sm">
+                  <p className="text-slate-700 line-clamp-1 text-xs sm:text-sm">
                     {img.alt_description || "Untitled image"}
                   </p>
                   <p className="text-xs text-slate-500 mt-1">by {img.user}</p>
@@ -459,17 +567,17 @@ export default function ColorSearchPage() {
         
         {/* End of content message */}
         {!loading && !hasMore && images.length > 0 && (
-          <div className="text-center mt-10 mb-6">
+          <div className="text-center mt-8 mb-6">
             <p className="text-sm text-slate-500">No more images to load</p>
           </div>
         )}
         
         {/* Empty state */}
-        {!loading && images.length === 0 && !error && (
-          <div className="text-center py-20">
-            <Camera size={48} className="mx-auto text-slate-300 mb-4" />
-            <h3 className="text-xl text-slate-600 mb-2">No images found</h3>
-            <p className="text-slate-500 max-w-md mx-auto">
+        {!loading && !initialLoading && images.length === 0 && !error && (
+          <div className="text-center py-16 sm:py-20">
+            <Camera size={40} className="mx-auto text-slate-300 mb-4" />
+            <h3 className="text-lg sm:text-xl text-slate-600 mb-2">No images found</h3>
+            <p className="text-slate-500 max-w-md mx-auto text-sm sm:text-base">
               Try searching for different colors, themes, or moods to find inspiring images
             </p>
           </div>
@@ -480,22 +588,22 @@ export default function ColorSearchPage() {
       <AnimatePresence>
         {previewImage && (
           <motion.div
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={closePreview}
           >
             <motion.div
-              className="bg-white rounded-2xl overflow-hidden max-w-4xl w-full shadow-2xl"
+              className="bg-white rounded-2xl overflow-hidden max-w-4xl w-full max-h-[90vh] shadow-2xl"
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="flex flex-col md:flex-row">
+              <div className="flex flex-col md:flex-row h-full max-h-[90vh]">
                 {/* Image */}
-                <div className="md:w-1/2 relative">
+                <div className="md:w-1/2 h-56 sm:h-64 md:h-auto relative overflow-hidden">
                   <img
                     src={previewImage.small}
                     alt={previewImage.alt_description || "Selected image"}
@@ -504,10 +612,14 @@ export default function ColorSearchPage() {
                 </div>
                 
                 {/* Color palette */}
-                <div className="md:w-1/2 p-6">
+                <div className="md:w-1/2 p-4 sm:p-6 overflow-y-auto">
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-xl font-medium text-slate-800">Color Palette</h3>
-                    <button onClick={closePreview} className="text-slate-400 hover:text-slate-600">
+                    <h3 className="text-lg sm:text-xl font-medium text-slate-800">Color Palette</h3>
+                    <button 
+                      onClick={closePreview} 
+                      className="text-slate-400 hover:text-slate-600 p-1"
+                      aria-label="Close"
+                    >
                       <X size={20} />
                     </button>
                   </div>
@@ -517,7 +629,7 @@ export default function ColorSearchPage() {
                     {activeImageColors ? (
                       activeImageColors.length > 0 ? (
                         <>
-                          <div className="flex overflow-hidden rounded-lg h-20 mb-6 shadow-sm">
+                          <div className="flex overflow-hidden rounded-lg h-16 sm:h-20 mb-4 sm:mb-6 shadow-sm">
                             {activeImageColors.map((color, i) => (
                               <div
                                 key={i}
@@ -527,26 +639,27 @@ export default function ColorSearchPage() {
                             ))}
                           </div>
                           
-                          <div className="grid grid-cols-2 gap-3">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
                             {activeImageColors.map((color, i) => (
                               <div
                                 key={i}
-                                className="flex items-center p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors"
+                                className="flex items-center p-2 sm:p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors"
                               >
                                 <div
-                                  className="w-10 h-10 rounded-md mr-3 shadow-sm"
+                                  className="w-8 sm:w-10 h-8 sm:h-10 rounded-md mr-2 sm:mr-3 shadow-sm"
                                   style={{ backgroundColor: color.hex }}
                                 ></div>
-                                <div className="flex-1">
-                                  <div className="text-sm font-mono text-slate-700">{color.hex}</div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="text-xs sm:text-sm font-mono text-slate-700 truncate">{color.hex}</div>
                                   <div className="text-xs text-slate-500">
                                     {Math.round(color.area * 100)}%
                                   </div>
                                 </div>
                                 <button
                                   onClick={() => copyColorToClipboard(color.hex)}
-                                  className="p-2 text-slate-400 hover:text-slate-700"
+                                  className="p-1.5 sm:p-2 text-slate-400 hover:text-slate-700"
                                   title="Copy color"
+                                  aria-label={`Copy color ${color.hex}`}
                                 >
                                   <Copy size={16} />
                                 </button>
@@ -557,7 +670,7 @@ export default function ColorSearchPage() {
                           <div className="flex justify-end pt-4">
                             <button
                               onClick={downloadPalette}
-                              className="flex items-center gap-1.5 px-4 py-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 transition-colors"
+                              className="flex items-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 bg-indigo-50 text-indigo-600 text-sm rounded-lg hover:bg-indigo-100 transition-colors"
                             >
                               <Download size={16} />
                               <span>Download Palette</span>
@@ -565,7 +678,7 @@ export default function ColorSearchPage() {
                           </div>
                         </>
                       ) : (
-                        <div className="py-10 text-center text-slate-500">
+                        <div className="py-8 sm:py-10 text-center text-slate-500">
                           <motion.div
                             animate={{ rotate: 360 }}
                             transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
@@ -575,7 +688,7 @@ export default function ColorSearchPage() {
                         </div>
                       )
                     ) : (
-                      <div className="py-10 text-center text-slate-500">
+                      <div className="py-8 sm:py-10 text-center text-slate-500">
                         <motion.div
                           animate={{ rotate: 360 }}
                           transition={{ duration: 2, repeat: Infinity, ease: "linear" }}

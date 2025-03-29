@@ -1,92 +1,26 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 
-function ElegantShape({
-  className,
-  delay = 0,
-  width = 400,
-  height = 100,
-  rotate = 0,
-  gradient = "from-white/[0.08]"
-}) {
-  return (
-    <motion.div
-      initial={{
-        opacity: 0,
-        y: -150,
-        rotate: rotate - 15,
-      }}
-      animate={{
-        opacity: 1,
-        y: 0,
-        rotate: rotate,
-      }}
-      transition={{
-        duration: 2.4,
-        delay,
-        ease: [0.23, 0.86, 0.39, 0.96],
-        opacity: { duration: 1.2 },
-      }}
-      className={cn("absolute", className)}
-    >
-      <motion.div
-        animate={{
-          y: [0, 15, 0],
-        }}
-        transition={{
-          duration: 12,
-          repeat: Number.POSITIVE_INFINITY,
-          ease: "easeInOut",
-        }}
-        style={{
-          width,
-          height,
-        }}
-        className="relative"
-      >
-        <div
-          className={cn(
-            "absolute inset-0 rounded-full",
-            "bg-gradient-to-r to-transparent",
-            gradient,
-            "backdrop-blur-[2px] border-2 border-white/[0.15]",
-            "shadow-[0_8px_32px_0_rgba(255,255,255,0.1)]",
-            "after:absolute after:inset-0 after:rounded-full",
-            "after:bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.2),transparent_70%)]"
-          )}
-        />
-      </motion.div>
-    </motion.div>
-  );
-}
-
 export function SignUpPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
-  const fadeUpVariants = {
-    hidden: { opacity: 0, y: 30 },
-    visible: (i) => ({
-      opacity: 1,
-      y: 0,
-      transition: {
-        duration: 1,
-        delay: 0.5 + i * 0.2,
-        ease: [0.25, 0.4, 0.25, 1],
-      },
-    }),
-  };
-
-  // Normal form ile register
+  // Register handler for form submission
   const handleRegister = async () => {
+    if (!name || !email || !password) {
+      toast.error("Please fill in all fields");
+      return;
+    }
+    
+    setIsLoading(true);
     try {
       const res = await fetch("/api/auth/register", {
         method: "POST",
@@ -97,180 +31,266 @@ export function SignUpPage() {
       const data = await res.json();
 
       if (res.ok) {
-        toast.success("Kayıt başarılı! Yönlendiriliyorsunuz...");
+        toast.success("Registration successful! Redirecting...");
         setTimeout(() => router.push("/blog"), 2000);
       } else {
-        toast.error(data.error || "Kayıt başarısız!");
+        toast.error(data.error || "Registration failed");
       }
     } catch (error) {
       console.error("Register error:", error);
-      toast.error("Sunucu hatası, tekrar deneyin!");
+      toast.error("Server error, please try again");
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  // Google ile kayıt ol (aslında login ile aynı akış)
+  // Google signup handler
   const handleGoogleSignUp = () => {
-    // Eğer kendi Google OAuth akışınızı yazdıysanız:
-    // window.location.href = "/api/auth/google";
-    //
-    // Eğer NextAuth kullanıyorsanız:
-    // signIn("google");
-
     window.location.href = "/api/auth/google"; 
   };
-
+  
   return (
-    <div className="relative min-h-screen w-full flex items-center justify-center overflow-hidden bg-[#030303]">
-      {/* Background gradient */}
-      <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/[0.05] via-transparent to-rose-500/[0.05] blur-3xl" />
-
-      {/* Floating shapes */}
+    <div className="min-h-screen w-full flex items-center justify-center bg-[#0a0a0a] relative overflow-hidden font-sans">
+      {/* Background elements */}
       <div className="absolute inset-0 overflow-hidden">
-        <ElegantShape
-          delay={0.3}
-          width={600}
-          height={140}
-          rotate={12}
-          gradient="from-indigo-500/[0.15]"
-          className="left-[-10%] md:left-[-5%] top-[15%] md:top-[20%]"
+        {/* Dynamic grid pattern */}
+        <div className="absolute inset-0 opacity-20">
+          <div className="grid grid-cols-12 h-full w-full">
+            {Array.from({ length: 12 }).map((_, i) => (
+              <div key={i} className="h-full border-r border-white/5" />
+            ))}
+          </div>
+          <div className="grid grid-rows-12 h-full w-full">
+            {Array.from({ length: 12 }).map((_, i) => (
+              <div key={i} className="w-full border-b border-white/5" />
+            ))}
+          </div>
+        </div>
+
+        {/* Gradient spheres */}
+        <motion.div 
+          className="absolute top-1/3 -right-20 w-60 h-60 rounded-full bg-gradient-to-tr from-violet-600/20 to-transparent blur-xl"
+          animate={{
+            y: [0, 40, 0],
+            opacity: [0.5, 0.8, 0.5],
+          }}
+          transition={{
+            duration: 15,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
         />
-        <ElegantShape
-          delay={0.5}
-          width={500}
-          height={120}
-          rotate={-15}
-          gradient="from-rose-500/[0.15]"
-          className="right-[-5%] md:right-[0%] top-[70%] md:top-[75%]"
-        />
-        <ElegantShape
-          delay={0.4}
-          width={300}
-          height={80}
-          rotate={-8}
-          gradient="from-violet-500/[0.15]"
-          className="left-[5%] md:left-[10%] bottom-[5%] md:bottom-[10%]"
-        />
-        <ElegantShape
-          delay={0.6}
-          width={200}
-          height={60}
-          rotate={20}
-          gradient="from-amber-500/[0.15]"
-          className="right-[15%] md:right-[20%] top-[10%] md:top-[15%]"
-        />
-        <ElegantShape
-          delay={0.7}
-          width={150}
-          height={40}
-          rotate={-25}
-          gradient="from-cyan-500/[0.15]"
-          className="left-[20%] md:left-[25%] top-[5%] md:top-[10%]"
+        
+        <motion.div 
+          className="absolute bottom-1/3 -left-20 w-80 h-80 rounded-full bg-gradient-to-tr from-orange-500/20 to-transparent blur-xl"
+          animate={{
+            y: [0, -30, 0],
+            opacity: [0.5, 0.7, 0.5],
+          }}
+          transition={{
+            duration: 12,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
         />
       </div>
 
-      {/* Sign-Up Form */}
-      <div className="relative z-10 container mx-auto px-4 md:px-6">
-        <div className="max-w-3xl mx-auto">
-          <motion.div
-            custom={0}
-            variants={fadeUpVariants}
-            initial="hidden"
-            animate="visible"
-            className="flex justify-center items-center mb-8 md:mb-12"
-          >
-            <div className="flex justify-center items-center min-h-screen">
-              <motion.div
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.6 }}
-                className="relative bg-white/10 backdrop-blur-md p-8 rounded-2xl shadow-lg w-96 text-white border border-white/20"
-              >
-                <h2 className="text-2xl font-semibold text-center mb-6">
-                  Create an Account
-                </h2>
+      {/* Content container */}
+      <div className="relative z-10 w-full max-w-screen-xl mx-auto px-4 md:px-6 flex flex-col md:flex-row h-screen">
+        {/* Left side - signup form */}
+        <motion.div 
+          className="flex items-center justify-center flex-1 order-2 md:order-1"
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8 }}
+        >
+          <div className="w-full max-w-md relative">
+            {/* Card backdrop blur */}
+            <div className="absolute inset-0 bg-white/5 backdrop-blur-2xl rounded-2xl border border-white/10"></div>
+            
+            {/* Signup container */}
+            <div className="relative p-8 md:p-10">
+              <div className="text-center mb-8">
+                <h2 className="text-2xl font-bold text-white mb-2">Join Our Creative Community</h2>
+                <p className="text-white/60">Start your design journey today</p>
+              </div>
 
-                <div className="mb-4">
-                  <label className="block text-sm font-medium">Name</label>
-                  <input
-                    type="text"
-                    placeholder="Enter your name"
-                    className="w-full mt-1 p-3 bg-white/20 backdrop-blur-md rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-white"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                  />
+              <div className="space-y-5">
+                <div>
+                  <label className="block text-sm font-medium text-white/80 mb-1.5">Full Name</label>
+                  <div className="relative">
+                    <motion.div 
+                      className="absolute inset-0 rounded-lg"
+                      animate={{ 
+                        boxShadow: name ? "0 0 0 1px rgba(246, 187, 92, 0.5)" : "none" 
+                      }}
+                      transition={{ duration: 0.2 }}
+                    />
+                    <input
+                      type="text"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      className="block w-full px-4 py-3.5 bg-white/10 border border-white/10 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 text-white placeholder-white/40"
+                      placeholder="John Doe"
+                    />
+                  </div>
                 </div>
 
-                <div className="mb-4">
-                  <label className="block text-sm font-medium">Email</label>
-                  <input
-                    type="email"
-                    placeholder="Enter your email"
-                    className="w-full mt-1 p-3 bg-white/20 backdrop-blur-md rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-white"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                  />
+                <div>
+                  <label className="block text-sm font-medium text-white/80 mb-1.5">Email</label>
+                  <div className="relative">
+                    <motion.div 
+                      className="absolute inset-0 rounded-lg"
+                      animate={{ 
+                        boxShadow: email ? "0 0 0 1px rgba(246, 184, 92, 0.5)" : "none" 
+                      }}
+                      transition={{ duration: 0.2 }}
+                    />
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="block w-full px-4 py-3.5 bg-white/10 border border-white/10 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 text-white placeholder-white/40"
+                      placeholder="your.email@example.com"
+                    />
+                  </div>
                 </div>
 
-                <div className="mb-4">
-                  <label className="block text-sm font-medium">Password</label>
-                  <input
-                    type="password"
-                    placeholder="Enter your password"
-                    className="w-full mt-1 p-3 bg-white/20 backdrop-blur-md rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-white"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                  />
+                <div>
+                  <label className="block text-sm font-medium text-white/80 mb-1.5">Password</label>
+                  <div className="relative">
+                    <motion.div 
+                      className="absolute inset-0 rounded-lg"
+                      animate={{ 
+                        boxShadow: password ? "0 0 0 1px rgba(246, 184, 92, 0.5)" : "none" 
+                      }}
+                      transition={{ duration: 0.2 }}
+                    />
+                    <input
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="block w-full px-4 py-3.5 bg-white/10 border border-white/10 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 text-white placeholder-white/40"
+                      placeholder="••••••••"
+                    />
+                  </div>
                 </div>
 
-                {/* Normal form ile register */}
                 <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
                   onClick={handleRegister}
-                  className="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold p-3 rounded-lg transition-all"
+                  className="w-full py-3.5 bg-gradient-to-r from-orange-600 to-orange-700 text-white rounded-lg font-medium relative overflow-hidden"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  disabled={isLoading}
                 >
-                  Register
+                  {isLoading ? (
+                    <svg className="animate-spin h-5 w-5 mx-auto text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                  ) : (
+                    <span>Create Account</span>
+                  )}
+                  <motion.div 
+                    className="absolute inset-0 bg-gradient-to-r from-orange-600/80 to-orange-600/80"
+                    initial={{ x: '100%' }}
+                    whileHover={{ x: 0 }}
+                    transition={{ duration: 0.4 }}
+                  />
                 </motion.button>
 
-                {/* Google ile Kayıt Ol */}
-                <div className="flex items-center my-4">
-                  <hr className="flex-grow border-t border-white/20" />
-                  <span className="mx-2 text-white/50 text-sm">OR</span>
-                  <hr className="flex-grow border-t border-white/20" />
+                <div className="relative flex items-center py-2">
+                  <div className="flex-grow bg-white/10 h-px"></div>
+                  <span className="flex-shrink mx-3 text-xs text-white/50">OR CONTINUE WITH</span>
+                  <div className="flex-grow bg-white/10 h-px"></div>
                 </div>
+
                 <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
                   onClick={handleGoogleSignUp}
-                  className="w-full bg-red-500 hover:bg-red-600 text-white font-semibold p-3 rounded-lg transition-all flex items-center justify-center gap-2"
+                  className="w-full py-3.5 bg-white/10 border border-white/10 hover:bg-white/15 text-white rounded-lg font-medium flex items-center justify-center gap-2"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
                 >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="20"
-                    height="20"
-                    fill="currentColor"
-                    className="bi bi-google"
-                    viewBox="0 0 16 16"
-                  >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16">
                     <path d="M8.159 8.204v3.272h4.677c-.19 1.236-1.411 3.62-4.677 3.62-2.81 0-5.1-2.312-5.1-5.166 0-2.853 2.29-5.166 5.1-5.166 1.6 0 2.67.676 3.288 1.25l2.266-2.213C11.856 2.476 10.168 1.5 8.158 1.5 4.605 1.5 1.66 4.513 1.66 8.031c0 3.52 2.945 6.533 6.497 6.533 3.774 0 6.263-2.66 6.263-6.39 0-.43-.046-.756-.104-1.07H8.159z" />
                   </svg>
-                  Sign Up with Google
+                  Google
                 </motion.button>
+              </div>
 
-                <p className="text-sm text-center mt-4 opacity-75">
-                  Already have an account?{" "}
-                  <span className="text-blue-400 cursor-pointer hover:underline">
-                    <Link href="/login">Login</Link>
-                  </span>
-                </p>
-              </motion.div>
+              <p className="text-center text-white/60 text-sm mt-8">
+                Already have an account?{" "}
+                <Link href="/login" className="text-orange-400 hover:text-orange-300 transition font-medium">
+                  Sign in
+                </Link>
+              </p>
             </div>
-          </motion.div>
-        </div>
-      </div>
+          </div>
+        </motion.div>
 
-      {/* Foreground gradient for styling */}
-      <div className="absolute inset-0 bg-gradient-to-t from-[#030303] via-transparent to-[#030303]/80 pointer-events-none" />
+        {/* Right side - benefits */}
+        <motion.div 
+          className="hidden md:flex flex-col justify-center items-start flex-1 pl-10 order-1 md:order-2"
+          initial={{ opacity: 0, x: 30 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.8, delay: 0.2 }}
+        >
+          <h1 className="text-5xl font-bold tracking-tighter text-white mb-3">
+            Showcase Your
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-orange-500"> Malerium Vision</span>
+          </h1>
+          <p className="text-lg text-white/70 max-w-md">
+            Join thousands of creative professionals who use our platform to share their work, build their brand, and find new opportunities.
+          </p>
+          
+          {/* Benefit highlights */}
+          <div className="mt-12 space-y-6">
+            {[
+              { title: "Portfolio Showcase", desc: "Customizable portfolio templates that highlight your work" },
+              { title: "Professional Network", desc: "Connect with clients and fellow designers worldwide" },
+              { title: "Project Management", desc: "Tools to manage your creative projects efficiently" },
+            ].map((benefit, i) => (
+              <motion.div 
+                key={i}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.5 + (i * 0.2) }}
+                className="flex items-start space-x-3"
+              >
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center flex-shrink-0">
+                  <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-white font-medium">{benefit.title}</h3>
+                  <p className="text-white/60 text-sm">{benefit.desc}</p>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+
+          {/* Designer statistics */}
+          <div className="mt-12 grid grid-cols-3 gap-6 w-full max-w-lg">
+            {[
+              { value: "10k+", label: "Designers" },
+              { value: "3.5M", label: "Projects" },
+              { value: "96%", label: "Success Rate" },
+            ].map((stat, i) => (
+              <motion.div 
+                key={i}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.9 + (i * 0.2) }}
+                className="text-center"
+              >
+                <div className="text-2xl font-bold text-white mb-1">{stat.value}</div>
+                <div className="text-sm text-white/60">{stat.label}</div>
+              </motion.div>
+            ))}
+          </div>
+        </motion.div>
+      </div>
     </div>
   );
 }

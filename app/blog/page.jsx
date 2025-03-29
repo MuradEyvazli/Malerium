@@ -127,10 +127,10 @@ export default function BlogPage() {
     items: [
       {
         id: "shadcn-ui",
-        title: "shadcn/ui: Building a Modern Component Library",
+        title: "UI/UX: Building a Modern Component Library",
         description:
           "Explore how shadcn/ui revolutionized React component libraries by providing a unique approach to component distribution and customization.",
-        href: "https://ui.shadcn.com",
+        href: "/blog/ui-library",
         image:
           "https://images.unsplash.com/photo-1551250928-243dc937c49d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
       },
@@ -139,7 +139,7 @@ export default function BlogPage() {
         title: "Tailwind CSS: The Utility-First Revolution",
         description:
           "Discover how Tailwind CSS transformed the way developers style their applications, offering a utility-first approach.",
-        href: "https://tailwindcss.com",
+        href: "/blog/tailwind",
         image:
           "https://images.unsplash.com/photo-1551250928-e4a05afaed1e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
       },
@@ -148,7 +148,7 @@ export default function BlogPage() {
         title: "Astro: The All-in-One Web Framework",
         description:
           "Learn how Astro's innovative 'Islands Architecture' and zero-JS-by-default approach is helping developers build faster websites.",
-        href: "https://astro.build",
+        href: "/blog/astro",
         image:
           "https://images.unsplash.com/photo-1536735561749-fc87494598cb?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
       },
@@ -157,7 +157,7 @@ export default function BlogPage() {
         title: "React: Pioneering Component-Based UI",
         description:
           "See how React continues to shape modern web development with its component-based architecture.",
-        href: "https://react.dev",
+        href: "/blog/react",
         image:
           "https://images.unsplash.com/photo-1548324215-9133768e4094?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
       },
@@ -166,7 +166,7 @@ export default function BlogPage() {
         title: "Next.js: The React Framework for Production",
         description:
           "Explore how Next.js has become the go-to framework for building full-stack React applications.",
-        href: "https://nextjs.org",
+        href: "/blog/nextjs",
         image:
           "https://images.unsplash.com/photo-1550070881-a5d71eda5800?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
       },
@@ -461,10 +461,10 @@ const handlePostView = async (postId) => {
                   opacity: [0, 1, 1, 0],
                   y: [-20, 0, 0, 20],
                   color: [
-                    "#4F46E5", 
-                    "#8B5CF6", 
-                    "#EC4899", 
-                    "#3B82F6"  
+                    "#000000", 
+                    "#4f4f4f", 
+                    "#000000", 
+                    "#727272"  
                   ]
                 }}
                 transition={{ 
@@ -487,16 +487,9 @@ const handlePostView = async (postId) => {
               repeat: Infinity,
               ease: "easeInOut"
             }}
-            className="h-1 bg-gradient-to-r from-indigo-600 via-purple-500 to-pink-500 mt-4 rounded-full"
+            className="h-1 bg-gradient-to-r from-gray-600 via-gray-500 to-gray-500 mt-4 rounded-full"
           />
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.5 }}
-            className="mt-6 text-gray-600"
-          >
-            İçerik yükleniyor...
-          </motion.p>
+          
         </div>
       </div>
     );
@@ -505,205 +498,6 @@ const handlePostView = async (postId) => {
  
   return (
     <div className="min-h-screen bg-gray-50">
-      
-      <nav className="sticky top-0 z-50 bg-white shadow-sm border-b border-gray-100">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          
-          <div className="flex justify-between h-16 items-center">
-            <div className="flex items-center">
-              <button 
-                className="p-2 rounded-md text-gray-500 lg:hidden "
-                onClick={() => setShowMobileMenu(!showMobileMenu)}
-              >
-                <HiOutlineMenuAlt2 className="h-6 w-6" />
-              </button>
-              <Link href="/" className="flex items-center">
-                <Image
-                  src="/assets/maleriumBlack.png"
-                  alt="Malerium"
-                  width={120}
-                  height={40}
-                  className="h-8 w-auto object-contain"
-                />
-              </Link>
-            </div>
-            
-            
-            <div className="hidden lg:flex items-center space-x-6">
-              {categories.slice(0, 5).map((category, idx) => (
-                <button
-                  key={`nav-${idx}`}
-                  onClick={() => {
-                    setSelectedCategory(category);
-                    setCurrentPage(1);
-                  }}
-                  className={`text-sm font-medium hover:text-yellow-600 transition px-2 py-1 ${
-                    selectedCategory === category
-                      ? "text-yellow-600 border-b-2 border-yellow-500"
-                      : "text-gray-600"
-                  }`}
-                >
-                  {category}
-                </button>
-              ))}
-            </div>
-            
-            <div className="flex items-center space-x-4">
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="Kişi ara..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  onFocus={() => setSearchFocused(true)}
-                  onBlur={(e) => {
-                    
-                    setTimeout(() => {
-                      if (!e.relatedTarget || !e.relatedTarget.closest('.search-dropdown')) {
-                        setSearchFocused(false);
-                      }
-                    }, 200);
-                  }}
-                  className="pl-10 pr-4 py-2 border border-gray-200 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent w-32 sm:w-64 bg-gray-50"
-                />
-                <HiOutlineSearch className="absolute left-3 top-2.5 text-gray-400 h-5 w-5" />
-                
-               
-                {(searchFocused || searchTerm) && (
-                  <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden z-50 search-dropdown">
-                    <div className="p-2 border-b border-gray-100">
-                      <h4 className="text-xs font-medium text-gray-500 mb-1">Kişiler</h4>
-                    </div>
-                    
-                    {userLoading ? (
-                      <div className="p-4 flex justify-center">
-                        <div className="w-6 h-6 border-2 border-yellow-500 border-t-transparent rounded-full animate-spin"></div>
-                      </div>
-                    ) : fetchedUsers && fetchedUsers.length > 0 ? (
-                      <div className="max-h-72 overflow-y-auto">
-                        {fetchedUsers.map((user) => (
-                          <div 
-                            key={user._id} 
-                            className="flex items-center justify-between p-3 hover:bg-gray-50 transition-colors"
-                          >
-                            <div className="flex items-center gap-3 flex-grow">
-                              {/* Profil fotoğrafına tıklandığında büyüt */}
-                              <div 
-                                className="cursor-pointer relative overflow-hidden rounded-full group"
-                                onClick={(e) => openPhotoPreview(user.avatar || "/fallback-avatar.png", user.name, e)}
-                              >
-                                <Image
-                                  src={user.avatar || "/fallback-avatar.png"}
-                                  alt={user.name}
-                                  width={40}
-                                  height={40}
-                                  className="w-10 h-10 rounded-full object-cover group-hover:scale-105 transition-transform"
-                                />
-                                {/* Hover durumunda gösterilecek büyüteç efekti */}
-                                <div className="absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
-                                  </svg>
-                                </div>
-                              </div>
-                              <Link 
-                                href={`/profile/${user._id}`}
-                                onClick={() => setSearchTerm("")}
-                              >
-                                <div>
-                                  <p className="font-medium text-gray-800">{user.name}</p>
-                                  <p className="text-xs text-gray-500">{user.title || "Kullanıcı"}</p>
-                                </div>
-                              </Link>
-                            </div>
-                            
-                            {(user._id !== currentUser?._id) && (
-                              <div>
-                                {checkIsFriend(user._id) ? (
-                                  <span className="px-3 py-1 text-xs bg-green-100 text-green-700 rounded-full">
-                                    Arkadaşsınız
-                                  </span>
-                                ) : checkIsPending(user._id) ? (
-                                  <button
-                                    onClick={() => handleCancelFriendRequest(findPendingRequestId(user._id))}
-                                    className="px-3 py-1 text-xs bg-gray-100 text-gray-700 rounded-full hover:bg-gray-200 transition-colors"
-                                  >
-                                    İsteği İptal Et
-                                  </button>
-                                ) : (
-                                  <button
-                                    onClick={() => handleAddFriend(user._id)}
-                                    className="px-3 py-1 text-xs bg-yellow-100 text-yellow-700 rounded-full hover:bg-yellow-200 transition-colors"
-                                  >
-                                    Arkadaş Ekle
-                                  </button>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="p-4 text-center text-sm text-gray-500">
-                        {searchTerm ? "Kullanıcı bulunamadı" : "Birini aramak için yazın"}
-                      </div>
-                    )}
-                    
-                    
-                    <div className="p-3 border-t border-gray-100 bg-gray-50">
-                      <Link 
-                        href="/blog/friends" 
-                        className="flex items-center justify-center gap-2 w-full py-2 bg-yellow-50 hover:bg-yellow-100 text-yellow-600 rounded-lg transition-colors text-sm font-medium"
-                        onClick={() => setSearchFocused(false)}
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
-                          <path d="M7 8a3 3 0 100-6 3 3 0 000 6zM14.5 9a2.5 2.5 0 100-5 2.5 2.5 0 000 5zM1.615 16.428a1.224 1.224 0 01-.569-1.175 6.002 6.002 0 0111.908 0c.058.467-.172.92-.57 1.174A9.953 9.953 0 017 18a9.953 9.953 0 01-5.385-1.572zM14.5 16.5h-.106c.07-.297.088-.611.048-.933a7.47 7.47 0 00-1.588-3.755 4.502 4.502 0 015.874 2.636.818.818 0 01-.36.98A7.465 7.465 0 0114.5 16.5z" />
-                        </svg>
-                        Tüm Arkadaşlarını Gör
-                      </Link>
-                    </div>
-                  </div>
-                )}
-              </div>
-              
-              {currentUser ? (
-                <button
-                  onClick={() => setShowFriendsModal(true)}
-                  className="relative"
-                >
-                  <Image
-                    src={currentUser.avatar || "/fallback-avatar.png"}
-                    alt={currentUser.name}
-                    width={32}
-                    height={32}
-                    className="h-8 w-8 rounded-full object-cover border-2 border-white shadow-sm hover:border-yellow-400 transition-colors"
-                  />
-                  {friends?.length > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-yellow-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">
-                      {friends.length}
-                    </span>
-                  )}
-                </button>
-              ) : (
-                <Link 
-                  href="/auth/login"
-                  className="px-4 py-2 rounded-full text-sm bg-yellow-500 text-white hover:bg-yellow-600 transition font-medium"
-                >
-                  Giriş Yap
-                </Link>
-              )}
-              <button 
-                onClick={() => setShowFilters(!showFilters)}
-                className="p-2 rounded-full bg-gray-100 text-gray-700 hover:bg-gray-200 transition"
-              >
-                <HiOutlineFilter className="h-5 w-5" />
-              </button>
-            </div>
-          </div>
-        </div>
-      </nav>
-      
-      
       <AnimatePresence>
         {showMobileMenu && (
           <motion.div
@@ -777,6 +571,7 @@ const handlePostView = async (postId) => {
             transition={{ duration: 0.7 }}
             className="mb-6"
           >
+            <Link href="/">
             <Image
               src="/assets/maleriumWhite.png"
               alt="Malerium"
@@ -784,6 +579,7 @@ const handlePostView = async (postId) => {
               height={80}
               className="mx-auto h-16 sm:h-20 object-contain"
             />
+            </Link>
           </motion.div>
           
           <motion.p
@@ -1017,12 +813,12 @@ const handlePostView = async (postId) => {
             ))}
           </motion.div>
           <div className="flex justify-center mt-16 mb-[-100px]">
-          <button onClick={scrollToPremium} className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-yellow-500 to-purple-600 text-white rounded-full font-medium hover:from-yellow-600 hover:to-purple-700 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-1">
+          <Link href='/blog/premium-content'  className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-yellow-500 to-purple-600 text-white rounded-full font-medium hover:from-yellow-600 hover:to-purple-700 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-1">
          <span>Get Premium Membership</span>
          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
           <path fillRule="evenodd" d="M10.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L12.586 11H5a1 1 0 110-2h7.586l-2.293-2.293a1 1 0 010-1.414z" clipRule="evenodd" />
          </svg>
-          </button>
+          </Link>
           </div>
         </section>
         
@@ -1547,18 +1343,7 @@ const handlePostView = async (postId) => {
           </section>
         )}
         
-        <motion.section
-          ref={premiumSectionRef}
-          initial={{ opacity: 1 }}
-          animate={{ 
-                  opacity: 1,
-                  boxShadow: premiumHighlight 
-                  ? "0 0 0 4px rgba(234, 179, 8, 0.5)" 
-                  : "0 0 0 0px rgba(234, 179, 8, 0)"}}
-          transition={{ duration: 1 }}
-          className="rounded-3xl overflow-hidden">
-        <PremiumSubscriptionPage />
-        </motion.section>
+        
 
         <section className="mb-12">
           <div className="mb-10">

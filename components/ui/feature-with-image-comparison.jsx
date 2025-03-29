@@ -68,7 +68,7 @@ function Feature() {
                 </button>
               </div>
               <Image
-                src="https://images.pexels.com/photos/849835/pexels-photo-849835.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1"
+                src="/assets/maleriumWhite.png"
                 alt="feature8"
                 width={1920}
                 height={1080}
@@ -78,7 +78,7 @@ function Feature() {
                   clipPath: "inset(0 0 0 " + inset + "%)",
                 }} />
               <Image
-                src="https://images.pexels.com/photos/30139591/pexels-photo-30139591.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2"
+                src="/assets/maleriumBlack.png"
                 alt="darkmode-feature8.png"
                 width={1920}
                 height={1080}
