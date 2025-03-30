@@ -16,6 +16,13 @@ import {
   postLikedOrUnliked,
   commentAdded,
   postViewIncremented,
+  // Optimistik güncellemeler için eklenenler
+  optimisticLikePost,
+  syncLikePostSuccess,
+  syncLikePostError,
+  optimisticCommentPost,
+  syncCommentPostSuccess,
+  syncCommentPostError,
 } from "@/app/features/postSlice";
 import {
   sendFriendRequest,
@@ -38,11 +45,40 @@ import { Gallery4 } from "@/components/blocks/gallery4";
 import PremiumSubscriptionPage from "./premium-subscription/page";
 import { Star,ChevronDown } from "lucide-react";
 
+// UserAvatar bileşeni - tutarlı avatar deneyimi için
+const UserAvatar = ({ user, size = "md", onClick }) => {
+  const sizeClasses = {
+    sm: "w-6 h-6",
+    md: "w-8 h-8",
+    lg: "w-10 h-10",
+    xl: "w-12 h-12"
+  };
+  
+  return (
+    <div 
+      className={`cursor-pointer relative overflow-hidden rounded-full group ${sizeClasses[size]}`}
+      onClick={onClick}
+    >
+      <Image
+        src={user?.avatar || "/fallback-avatar.png"}
+        alt={user?.name || "Kullanıcı"}
+        width={size === "lg" ? 40 : 32}
+        height={size === "lg" ? 40 : 32}
+        className={`${sizeClasses[size]} rounded-full object-cover border border-gray-200 group-hover:scale-105 transition-transform`}
+      />
+      <div className="absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
+        </svg>
+      </div>
+    </div>
+  );
+};
+
 export default function BlogPage() {
   const dispatch = useDispatch();
   const router = useRouter();
 
-  
   const [searchTerm, setSearchTerm] = useState("");
   const [searchFocused, setSearchFocused] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -71,28 +107,58 @@ export default function BlogPage() {
   const myPosts = useSelector((state) => state.post.myPosts);
   const { friendRequests, friends } = useSelector((state) => state.friend);
 
-  const postsPerPage = 6;
+  // SAYFALAMA İYİLEŞTİRMESİ: 6'dan 9'a değiştirildi
+  const postsPerPage = 9;
 
+  // Profil linkini oluşturan yardımcı bileşen
+  const ProfileLink = ({ user, children, className }) => {
+    if (!user || !user._id) {
+      return <span className={className}>{children}</span>;
+    }
+    
+    return (
+      <Link 
+        href={`/profile/${user._id}`} 
+        className={className}
+      >
+        {children}
+      </Link>
+    );
+  };
+
+  // Avatar'a tıklama için ayrı bir fonksiyon - profil fotoğrafı önizleme veya profile gitme işlevi
+  const handleAvatarClick = (user, e) => {
+    if (!user || !user._id) return;
+    
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    
+    // CTRL veya Command tuşuna basılıyken tıklanırsa, fotoğraf önizleme göster
+    if (e && (e.ctrlKey || e.metaKey)) {
+      openPhotoPreview(user.avatar || "/fallback-avatar.png", user.name, e);
+    } else {
+      // Aksi takdirde, profil sayfasına git
+      router.push(`/profile/${user._id}`);
+    }
+  };
   
   const scrollToPremium = () => {
     setShowScrollIndicator(true);
     
-   
     if (premiumSectionRef.current) {
       premiumSectionRef.current.scrollIntoView({ 
         behavior: 'smooth', 
         block: 'start' 
       });
       
-      
       setTimeout(() => {
         setPremiumHighlight(true);
         
-       
         setTimeout(() => {
           setShowScrollIndicator(false);
         }, 1000);
-        
         
         setTimeout(() => {
           setPremiumHighlight(false);
@@ -100,6 +166,7 @@ export default function BlogPage() {
       }, 1000);
     }
   };
+  
   const openPhotoPreview = (src, alt, e) => {
     if (e) {
       e.preventDefault(); 
@@ -112,7 +179,6 @@ export default function BlogPage() {
     });
   };
 
-  
   const closePhotoPreview = () => {
     setPhotoPreview({
       ...photoPreview,
@@ -173,7 +239,6 @@ export default function BlogPage() {
     ],
   };
 
-  
   useEffect(() => {
     if (typeof window === "undefined") return; 
     const token = localStorage.getItem("token");
@@ -200,7 +265,6 @@ export default function BlogPage() {
     fetchCurrentUser();
   }, [dispatch]);
 
-  
   useEffect(() => {
     const fetchPosts = async () => {
       dispatch(startLoading());
@@ -266,11 +330,9 @@ export default function BlogPage() {
         );
         let users = response.data.users || [];
         
-        
         if (currentUser?._id) {
           users = users.filter(user => user._id !== currentUser._id);
         }
-        
         
         if (!searchTerm && users.length > 3) {
           users = users.sort(() => 0.5 - Math.random()).slice(0, 3);
@@ -285,13 +347,11 @@ export default function BlogPage() {
       }
     };
     
-    
     if (searchFocused || searchTerm) {
       fetchUsers();
     }
   }, [searchTerm, searchFocused, currentUser]);
 
-  
   const handleAddFriend = (receiverId) => {
     if (!currentUser) {
       alert("Önce giriş yapmalısınız!");
@@ -351,13 +411,25 @@ export default function BlogPage() {
     return pendingReq?._id;
   };
 
-  
+  // GÜNCELLENDİ: Optimistik güncelleme ile anında Like
+  const [likeInProgress, setLikeInProgress] = useState({});
   const handleLike = async (postId) => {
     if (!currentUser) {
       alert("Önce giriş yapmalısınız!");
       return;
     }
-  
+    
+    // Eğer bu post için zaten bir like işlemi devam ediyorsa, işlemi atlayalım
+    if (likeInProgress[postId]) {
+      return;
+    }
+    
+    // Bu post için like işlemini başlattığımızı işaretleyelim
+    setLikeInProgress(prev => ({ ...prev, [postId]: true }));
+    
+    // Optimistik güncelleme: UI'ı hemen güncelle
+    dispatch(optimisticLikePost({ postId, userId: currentUser._id }));
+    
     try {
       const token = localStorage.getItem("token");
       const res = await axios.post(
@@ -365,22 +437,54 @@ export default function BlogPage() {
         { postId },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      dispatch(postLikedOrUnliked(res.data.post));
+      
+      // Server'dan gelen veriyle senkronize et
+      dispatch(syncLikePostSuccess(res.data.post));
     } catch (error) {
       console.error("Like hatası:", error);
-      dispatch(postFailed(error.message));
+      // Hata durumunda optimistik güncellemeyi geri al
+      dispatch(syncLikePostError({ postId, userId: currentUser._id }));
+      
+      // Kullanıcıya hata geri bildirimi (opsiyonel, çok sık gösterilirse rahatsız edici olabilir)
+      if (error.response?.status === 500) {
+        // Çok fazla popup göstermemek için konsola yazdırıyoruz
+        console.warn("İşlem çok hızlı tekrarlandı, lütfen biraz bekleyin.");
+      } else {
+        dispatch(postFailed(error.message));
+      }
+    } finally {
+      // İşlem tamamlandı - 500ms bekletip sonra like butonunu tekrar aktif edelim
+      // Bu, çok hızlı ardışık tıklamaları sınırlandıracak
+      setTimeout(() => {
+        setLikeInProgress(prev => ({ ...prev, [postId]: false }));
+      }, 500);
     }
   };
   
+  // GÜNCELLENDİ: Optimistik güncelleme ile anında yorum
   const handleComment = async (postId) => {
     if (!commentText.trim()) return;
     if (!currentUser) {
       alert("Önce giriş yapmalısınız!");
       return;
     }
-  
+    
+    // Benzersiz bir geçici ID oluştur
+    const tempId = `temp-${Date.now()}`;
+    
+    // Yeni yorum objesi
+    const newComment = {
+      _id: tempId,
+      text: commentText,
+      user: currentUser,
+      createdAt: new Date().toISOString()
+    };
+    
+    // Optimistik güncelleme: UI'ı hemen güncelle
+    dispatch(optimisticCommentPost({ postId, comment: newComment }));
+    setCommentText("");
+    
     try {
-      dispatch(startLoading());
       const token = localStorage.getItem("token");
       const res = await axios.post(
         "/api/auth/comment-post",
@@ -388,29 +492,31 @@ export default function BlogPage() {
         { headers: { Authorization: `Bearer ${token}` } }
       );
       
-      dispatch(commentAdded(res.data.post));
-      setCommentText("");
+      // Server'dan gelen veriyle senkronize et
+      dispatch(syncCommentPostSuccess(res.data.post));
       setActiveCommentPostId(null);
     } catch (error) {
       console.error("Comment hatası:", error);
+      // Hata durumunda optimistik güncellemeyi geri al
+      dispatch(syncCommentPostError({ postId, commentId: tempId }));
       dispatch(postFailed(error.message));
     }
   };
-  // Add this function to your BlogPage component
-const handlePostView = async (postId) => {
-  if (!postId) return;
   
-  try {
-    const res = await axios.post(
-      "/api/auth/view-post",
-      { postId },
-      { headers: { "Content-Type": "application/json" } }
-    );
-    dispatch(postViewIncremented(res.data.post));
-  } catch (error) {
-    console.error("Görüntüleme kaydedilemedi:", error);
-  }
-};
+  const handlePostView = async (postId) => {
+    if (!postId) return;
+    
+    try {
+      const res = await axios.post(
+        "/api/auth/view-post",
+        { postId },
+        { headers: { "Content-Type": "application/json" } }
+      );
+      dispatch(postViewIncremented(res.data.post));
+    } catch (error) {
+      console.error("Görüntüleme kaydedilemedi:", error);
+    }
+  };
   
   const handleBlogLogout = async () => {
     try {
@@ -431,7 +537,6 @@ const handlePostView = async (postId) => {
     }
   };
 
-  
   const fadeInUp = {
     hidden: { opacity: 0, y: 20 },
     visible: { opacity: 1, y: 0 }
@@ -447,7 +552,6 @@ const handlePostView = async (postId) => {
     }
   };
 
-  
   if (loading) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/80 backdrop-blur-md">
@@ -489,13 +593,11 @@ const handlePostView = async (postId) => {
             }}
             className="h-1 bg-gradient-to-r from-gray-600 via-gray-500 to-gray-500 mt-4 rounded-full"
           />
-          
         </div>
       </div>
     );
   }
 
- 
   return (
     <div className="min-h-screen bg-gray-50">
       <AnimatePresence>
@@ -529,7 +631,6 @@ const handlePostView = async (postId) => {
         )}
       </AnimatePresence>
       
-      
       <AnimatePresence>
         {showFilters && (
           <motion.div
@@ -554,7 +655,6 @@ const handlePostView = async (postId) => {
         )}
       </AnimatePresence>
 
-      
       <section className="relative py-16 md:py-24 bg-gradient-to-br from-white to-black overflow-hidden">
         <div className="absolute inset-0 overflow-hidden">
           <svg className="absolute left-0 bottom-0 h-full w-full text-white opacity-10" 
@@ -626,31 +726,28 @@ const handlePostView = async (postId) => {
         </div>
       </section>
 
-      
+      {/* GÜNCELLEMME: Kullanıcı profili bölümü güncellendi */}
       {currentUser && (
         <div className="bg-white border-b border-gray-100 py-4 shadow-sm">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex flex-col md:flex-row items-center justify-between gap-4">
               <Link href={`/profile/${currentUser._id}`} className="flex items-center space-x-3 group">
-                {/* Kullanıcının kendi avatarına tıklayınca önizleme aç */}
-                <div 
-                  className="cursor-pointer relative overflow-hidden rounded-full group"
-                  onClick={(e) => openPhotoPreview(currentUser.avatar || "/fallback-avatar.png", currentUser.name, e)}
-                >
-                  <Image
-                    src={currentUser.avatar || "/fallback-avatar.png"}
-                    alt={currentUser.name}
-                    width={40}
-                    height={40}
-                    className="rounded-full object-cover border-2 border-white shadow-sm h-10 w-10 group-hover:border-yellow-400 transition-all group-hover:scale-105"
-                  />
-                  {/* Hover durumunda gösterilecek büyüteç efekti */}
-                  <div className="absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
-                    </svg>
-                  </div>
-                </div>
+                {/* Kullanıcının avatarı tıklanabilir */}
+                <UserAvatar 
+                  user={currentUser}
+                  size="lg"
+                  onClick={(e) => {
+                    // CTRL veya Command tuşuna basılı tutarken tıklanırsa fotoğraf göster
+                    if (e && (e.ctrlKey || e.metaKey)) {
+                      openPhotoPreview(currentUser.avatar || "/fallback-avatar.png", currentUser.name, e);
+                    } else {
+                      // Aksi takdirde profil sayfasına git (Link içinde olduğu için otomatik)
+                      e.preventDefault(); // Link davranışını engelleme
+                      router.push(`/profile/${currentUser._id}`);
+                    }
+                  }}
+                />
+                
                 <div>
                   <p className="font-medium text-gray-800 group-hover:text-yellow-600 transition-colors">{currentUser.name}</p>
                   <p className="text-xs text-gray-500">
@@ -690,6 +787,7 @@ const handlePostView = async (postId) => {
           </div>
         </div>
       )}
+      
       <AnimatePresence>
         {showScrollIndicator && (
           <motion.div 
@@ -707,9 +805,7 @@ const handlePostView = async (postId) => {
         )}
       </AnimatePresence>
 
-      
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        
         <section id="featured-posts" className="mb-20">
           <div className="mb-10 text-center">
             <motion.h2 
@@ -726,6 +822,7 @@ const handlePostView = async (postId) => {
             </p>
           </div>
           
+          {/* GÜNCELLEME: Featured blog cart'ları güncellendi */}
           <motion.div 
             variants={staggerContainer}
             initial="hidden"
@@ -739,10 +836,9 @@ const handlePostView = async (postId) => {
                 variants={fadeInUp}
                 className="group relative bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 h-full flex flex-col"
               >
-                
                 <div className="absolute top-4 right-4 z-10">
-                  <span className="bg-gradient-to-r from-yellow-500 to-amber-500 text-white text-xs font-bold px-3 py-1.5 rounded-full flex items-center  shadow-lg">
-                    <Star className="h-4 w-4 mr-1 fill-current "/>
+                  <span className="bg-gradient-to-r from-yellow-500 to-amber-500 text-white text-xs font-bold px-3 py-1.5 rounded-full flex items-center shadow-lg">
+                    <Star className="h-4 w-4 mr-1 fill-current"/>
                     PREMIUM
                   </span>
                 </div>
@@ -777,30 +873,38 @@ const handlePostView = async (postId) => {
                     
                     <div className="flex items-center justify-between mt-auto pt-4 border-t border-gray-100">
                       <div className="flex items-center gap-2">
-                        {/* Blog yazarının avatarını büyüt */}
-                        <div 
-                          className="w-8 h-8 rounded-full bg-gray-200 overflow-hidden cursor-pointer group"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            openPhotoPreview(
-                              blog.author?.avatar || "https://images.pexels.com/photos/27894205/pexels-photo-27894205.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1", 
-                              blog.author?.name || "Yazar", 
-                              e
-                            );
-                          }}
-                        >
-                          <Image
-                            src={blog.author?.avatar || "https://images.pexels.com/photos/27894205/pexels-photo-27894205.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1"}
-                            alt={blog.author?.name || "Yazar"}
-                            width={32}
-                            height={32}
-                            className="object-cover group-hover:scale-110 transition-transform"
-                          />
-                        </div>
-                        <span className="text-sm font-medium text-gray-700">
-                          {blog.author?.name || "Anonim"}
-                        </span>
+                        {/* Blog yazarının avatarını güncellendi */}
+                        {blog.author && (
+                          <>
+                            <UserAvatar 
+                              user={blog.author}
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                
+                                // CTRL veya Command tuşuna basılıyken tıklanırsa önizleme göster 
+                                if (e.ctrlKey || e.metaKey) {
+                                  openPhotoPreview(
+                                    blog.author.avatar || "https://images.pexels.com/photos/27894205/pexels-photo-27894205.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1", 
+                                    blog.author.name || "Yazar", 
+                                    e
+                                  );
+                                } 
+                                // Aksi halde profile git (eğer yazar ID'si varsa)
+                                else if (blog.author._id) {
+                                  router.push(`/profile/${blog.author._id}`);
+                                }
+                              }}
+                            />
+                            
+                            <ProfileLink 
+                              user={blog.author} 
+                              className="text-sm font-medium text-gray-700 hover:text-purple-600 transition-colors"
+                            >
+                              {blog.author.name || "Anonim"}
+                            </ProfileLink>
+                          </>
+                        )}
                       </div>
                       
                       <span className="text-xs text-gray-500">
@@ -814,19 +918,17 @@ const handlePostView = async (postId) => {
           </motion.div>
           <div className="flex justify-center mt-16 mb-[-100px]">
           <Link href='/blog/premium-content'  className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-yellow-500 to-purple-600 text-white rounded-full font-medium hover:from-yellow-600 hover:to-purple-700 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-1">
-         <span>Get Premium Membership</span>
-         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-          <path fillRule="evenodd" d="M10.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L12.586 11H5a1 1 0 110-2h7.586l-2.293-2.293a1 1 0 010-1.414z" clipRule="evenodd" />
-         </svg>
+            <span>Get Premium Membership</span>
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M10.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L12.586 11H5a1 1 0 110-2h7.586l-2.293-2.293a1 1 0 010-1.414z" clipRule="evenodd" />
+            </svg>
           </Link>
           </div>
         </section>
         
-        
         <section className="mb-20">
           <Gallery4 {...demoData} />
         </section>
-        
         
         <section className="mb-10">
           <div className="overflow-x-auto pb-2">
@@ -851,7 +953,6 @@ const handlePostView = async (postId) => {
           </div>
         </section>
 
-        
         <section id="all-posts-section" className="mb-20">
           <div className="mb-10">
             <motion.h2 
@@ -865,23 +966,42 @@ const handlePostView = async (postId) => {
             <div className="w-20 h-1 bg-yellow-500 rounded-full"></div>
           </div>
           
+          {/* GÜNCELLENDİ: "Post Bulunamadı" ekranı daha kullanıcı dostu yapıldı */}
           {currentPosts.length === 0 ? (
             <div className="bg-white rounded-xl shadow-sm p-10 text-center">
               <HiOutlineSearch className="w-16 h-16 text-gray-300 mx-auto mb-4" />
               <h3 className="text-xl font-medium text-gray-800 mb-2">
-              No posts found for this category
+                {selectedCategory === "All" 
+                  ? "Henüz hiç blog yazısı bulunmuyor" 
+                  : `"${selectedCategory}" kategorisinde yazı bulunamadı`
+                }
               </h3>
               <p className="text-gray-500 mb-6">
-              You can try selecting a different category or viewing all posts.
+                {selectedCategory === "All"
+                  ? "İlk blog yazınızı ekleyerek başlayabilirsiniz."
+                  : "Farklı bir kategori seçebilir veya tüm yazıları görebilirsiniz."
+                }
               </p>
-              <button
-                onClick={() => setSelectedCategory("All")}
-                className="px-5 py-2 bg-yellow-500 text-white rounded-full text-sm font-medium hover:bg-yellow-600 transition"
-              >
-                Show All Posts
-              </button>
+              {selectedCategory !== "All" && (
+                <button
+                  onClick={() => setSelectedCategory("All")}
+                  className="px-5 py-2 bg-yellow-500 text-white rounded-full text-sm font-medium hover:bg-yellow-600 transition"
+                >
+                  Tüm Yazıları Göster
+                </button>
+              )}
+              {selectedCategory === "All" && currentUser && (
+                <Link 
+                  href="/blog/add-post"
+                  className="px-5 py-2 bg-yellow-500 text-white rounded-full text-sm font-medium hover:bg-yellow-600 transition inline-flex items-center gap-2"
+                >
+                  <HiPlus className="w-4 h-4" />
+                  Yeni Yazı Ekle
+                </Link>
+              )}
             </div>
           ) : (
+            /* GÜNCELLENDİ: Blog post grid yapısı 3x3 formatı için optimize edildi */
             <motion.div
               variants={staggerContainer}
               initial="hidden"
@@ -895,7 +1015,7 @@ const handlePostView = async (postId) => {
                   variants={fadeInUp}
                   className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 flex flex-col h-full"
                 >
-                  
+                  {/* Post cover image */}
                   <div className="relative w-full" style={{ paddingBottom: "56.25%" }}>
                     <div className="absolute inset-0">
                       <Link href={`/blog/${post._id}`} className="block w-full h-full">
@@ -906,7 +1026,7 @@ const handlePostView = async (postId) => {
                               alt={post.title || "No Title"}
                               fill
                               className="object-cover transition-transform duration-700 hover:scale-105"
-                              priority
+                              priority={i < 3} // Sadece ilk satırdaki 3 postu öncelikli olarak yükle
                             />
                           </div>
                         ) : (
@@ -930,7 +1050,7 @@ const handlePostView = async (postId) => {
                     </div>
                   </div>
                   
-                  
+                  {/* Post content */}
                   <div className="p-6 flex-grow flex flex-col">
                     <Link href={`/blog/${post._id}`}>
                       <h3 className="text-xl font-bold mb-2 text-gray-900 hover:text-yellow-600 transition-colors line-clamp-2 min-h-[3.5rem]">
@@ -944,26 +1064,16 @@ const handlePostView = async (postId) => {
                     
                     <div className="flex items-center justify-between mb-4 mt-auto">
                       <div className="flex items-center gap-2">
-                        <div 
-                          className="cursor-pointer relative overflow-hidden rounded-full group"
-                          onClick={(e) => openPhotoPreview(post.author?.avatar || "/fallback-avatar.png", post.author?.name || "Anonim Yazar", e)}
-                        >
-                          <Image
-                            src={post.author?.avatar || "/fallback-avatar.png"}
-                            alt={post.author?.name || "Anonim User"}
-                            width={32}
-                            height={32}
-                            className="w-8 h-8 rounded-full object-cover border border-gray-200 group-hover:scale-105 transition-transform"
-                          />
-                          <div className="absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
-                            </svg>
-                          </div>
-                        </div>
-                        <span className="text-sm font-medium text-gray-700">
+                        {/* Avatar - profil sayfasına yönlendirir veya CTRL+tıklama ile fotoğraf gösterir */}
+                        <UserAvatar 
+                          user={post.author}
+                          onClick={(e) => handleAvatarClick(post.author, e)}
+                        />
+                        
+                        {/* İsim - profil sayfasına yönlendirir */}
+                        <ProfileLink user={post.author} className="text-sm font-medium text-gray-700 hover:text-yellow-600 transition-colors">
                           {post.author?.name || "Anonim User"}
-                        </span>
+                        </ProfileLink>
                       </div>
                       <span className="text-xs text-gray-500">
                         {post.createdAt 
@@ -972,49 +1082,55 @@ const handlePostView = async (postId) => {
                       </span>
                     </div>
                     
+                    {/* Post interactions */}
                     <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-  <button
-    onClick={() => handleLike(post._id)}
-    className="flex items-center gap-1 text-gray-600 hover:text-red-500 transition-colors"
-  >
-    {post.likes?.includes(currentUser?._id) ? (
-      <HiHeart className="w-5 h-5 text-red-500" />
-    ) : (
-      <HiOutlineHeart className="w-5 h-5" />
-    )}
-    <span className="text-sm">{post.likes?.length || 0}</span>
-  </button>
-  
-  <button
-    onClick={() => {
-      setActiveCommentPostId(
-        activeCommentPostId === post._id ? null : post._id
-      );
-    }}
-    className="flex items-center gap-1 text-gray-600 hover:text-yellow-500 transition-colors"
-  >
-    <HiOutlineChat className="w-5 h-5" />
-    <span className="text-sm">{post.comments?.length || 0}</span>
-  </button>
-  
-  
-  <div className="flex items-center gap-1 text-gray-600">
-    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-    </svg>
-    <span className="text-sm">{post.views || 0}</span>
-  </div>
-  
-  <Link 
-    href={`/blog/${post._id}`}
-    onClick={() => handlePostView(post._id)}
-    className="text-sm font-medium text-yellow-600 hover:text-yellow-700 transition-colors hover:underline"
-  >
-    Read more
-  </Link>
-</div>
+                      <button
+                        onClick={() => handleLike(post._id)}
+                        disabled={likeInProgress[post._id]}
+                        className={`flex items-center gap-1 ${
+                          likeInProgress[post._id] 
+                            ? "opacity-70 cursor-not-allowed" 
+                            : "text-gray-600 hover:text-red-500"
+                        } transition-colors`}
+                      >
+                        {post.likes?.includes(currentUser?._id) ? (
+                          <HiHeart className="w-5 h-5 text-red-500" />
+                        ) : (
+                          <HiOutlineHeart className="w-5 h-5" />
+                        )}
+                        <span className="text-sm">{post.likes?.length || 0}</span>
+                      </button>
+                      
+                      <button
+                        onClick={() => {
+                          setActiveCommentPostId(
+                            activeCommentPostId === post._id ? null : post._id
+                          );
+                        }}
+                        className="flex items-center gap-1 text-gray-600 hover:text-yellow-500 transition-colors"
+                      >
+                        <HiOutlineChat className="w-5 h-5" />
+                        <span className="text-sm">{post.comments?.length || 0}</span>
+                      </button>
+                      
+                      <div className="flex items-center gap-1 text-gray-600">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                        <span className="text-sm">{post.views || 0}</span>
+                      </div>
+                      
+                      <Link 
+                        href={`/blog/${post._id}`}
+                        onClick={() => handlePostView(post._id)}
+                        className="text-sm font-medium text-yellow-600 hover:text-yellow-700 transition-colors hover:underline"
+                      >
+                        Read more
+                      </Link>
+                    </div>
                     
+                    {/* Comment input */}
                     {activeCommentPostId === post._id && (
                       <motion.div
                         initial={{ opacity: 0, y: 10 }}
@@ -1043,16 +1159,14 @@ const handlePostView = async (postId) => {
             </motion.div>
           )}
           
-          
+          {/* GÜNCELLENDİ: Sayfalama sistemi daha gelişmiş ve kullanıcı dostu yapıldı */}
           {totalPages > 1 && (
             <div className="flex justify-center mt-12">
               <button
                 onClick={() => {
                   if (currentPage > 1) {
                     setCurrentPage(currentPage - 1);
-                    setTimeout(() => {
-                      document.getElementById('all-posts-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    }, 100);
+                    document.getElementById('all-posts-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
                   }
                 }}
                 disabled={currentPage === 1}
@@ -1061,36 +1175,206 @@ const handlePostView = async (postId) => {
                     ? "bg-gray-100 text-gray-400 cursor-not-allowed"
                     : "bg-white text-gray-700 hover:bg-gray-100"
                 }`}
+                aria-label="Önceki sayfa"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                   <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
                 </svg>
               </button>
-              {Array.from({ length: totalPages }, (_, index) => (
-                <button
-                  key={`page-${index + 1}`}
-                  onClick={() => {
-                    setCurrentPage(index + 1);
-                    setTimeout(() => {
-                      document.getElementById('all-posts-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    }, 100);
-                  }}
-                  className={`mx-1 w-10 h-10 flex items-center justify-center rounded-md text-sm font-semibold transition ${
-                    currentPage === index + 1
-                      ? "bg-yellow-500 text-white shadow-md"
-                      : "bg-white text-gray-700 hover:bg-gray-100"
-                  }`}
-                >
-                  {index + 1}
-                </button>
-              ))}
+              
+              {/* Sayfa numaraları için gelişmiş mantık */}
+              {(() => {
+                let pageButtons = [];
+                
+                // Toplam sayfa sayısı 7 veya daha az ise hepsini göster
+                if (totalPages <= 7) {
+                  for (let i = 1; i <= totalPages; i++) {
+                    pageButtons.push(
+                      <button
+                        key={`page-${i}`}
+                        onClick={() => {
+                          setCurrentPage(i);
+                          document.getElementById('all-posts-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        }}
+                        className={`mx-1 w-10 h-10 flex items-center justify-center rounded-md text-sm font-semibold transition ${
+                          currentPage === i
+                            ? "bg-yellow-500 text-white shadow-md"
+                            : "bg-white text-gray-700 hover:bg-gray-100"
+                        }`}
+                        aria-label={`Sayfa ${i}`}
+                        aria-current={currentPage === i ? "page" : undefined}
+                      >
+                        {i}
+                      </button>
+                    );
+                  }
+                } else {
+                  // 7'den fazla sayfa varsa akıllı pagination uygula
+                  
+                  // Her zaman ilk sayfayı göster
+                  pageButtons.push(
+                    <button
+                      key="page-1"
+                      onClick={() => {
+                        setCurrentPage(1);
+                        document.getElementById('all-posts-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
+                      }}
+                      className={`mx-1 w-10 h-10 flex items-center justify-center rounded-md text-sm font-semibold transition ${
+                        currentPage === 1
+                          ? "bg-yellow-500 text-white shadow-md"
+                          : "bg-white text-gray-700 hover:bg-gray-100"
+                      }`}
+                      aria-label="Sayfa 1"
+                      aria-current={currentPage === 1 ? "page" : undefined}
+                    >
+                      1
+                    </button>
+                  );
+                  
+                  // Ara sayfa numaralarını belirle
+                  let startPage, endPage;
+                  
+                  if (currentPage <= 3) {
+                    // İlk sayfalardaysa
+                    startPage = 2;
+                    endPage = 5;
+                    
+                    // Sayfalar
+                    for (let i = startPage; i <= endPage; i++) {
+                      pageButtons.push(
+                        <button
+                          key={`page-${i}`}
+                          onClick={() => {
+                            setCurrentPage(i);
+                            document.getElementById('all-posts-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
+                          }}
+                          className={`mx-1 w-10 h-10 flex items-center justify-center rounded-md text-sm font-semibold transition ${
+                            currentPage === i
+                              ? "bg-yellow-500 text-white shadow-md"
+                              : "bg-white text-gray-700 hover:bg-gray-100"
+                          }`}
+                          aria-label={`Sayfa ${i}`}
+                          aria-current={currentPage === i ? "page" : undefined}
+                        >
+                          {i}
+                        </button>
+                      );
+                    }
+                    
+                    // Boşluk
+                    pageButtons.push(
+                      <span key="ellipsis-end" className="mx-1 w-10 h-10 flex items-center justify-center text-gray-500">
+                        ...
+                      </span>
+                    );
+                    
+                  } else if (currentPage >= totalPages - 2) {
+                    // Son sayfalardaysa
+                    
+                    // Boşluk
+                    pageButtons.push(
+                      <span key="ellipsis-start" className="mx-1 w-10 h-10 flex items-center justify-center text-gray-500">
+                        ...
+                      </span>
+                    );
+                    
+                    startPage = totalPages - 4;
+                    endPage = totalPages - 1;
+                    
+                    // Sayfalar
+                    for (let i = startPage; i <= endPage; i++) {
+                      pageButtons.push(
+                        <button
+                          key={`page-${i}`}
+                          onClick={() => {
+                            setCurrentPage(i);
+                            document.getElementById('all-posts-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
+                          }}
+                          className={`mx-1 w-10 h-10 flex items-center justify-center rounded-md text-sm font-semibold transition ${
+                            currentPage === i
+                              ? "bg-yellow-500 text-white shadow-md"
+                              : "bg-white text-gray-700 hover:bg-gray-100"
+                          }`}
+                          aria-label={`Sayfa ${i}`}
+                          aria-current={currentPage === i ? "page" : undefined}
+                        >
+                          {i}
+                        </button>
+                      );
+                    }
+                    
+                  } else {
+                    // Ortadaki sayfalardaysa
+                    
+                    // İlk boşluk
+                    pageButtons.push(
+                      <span key="ellipsis-start" className="mx-1 w-10 h-10 flex items-center justify-center text-gray-500">
+                        ...
+                      </span>
+                    );
+                    
+                    // Ortadaki sayfalar (aktif sayfa ortada olacak şekilde)
+                    startPage = currentPage - 1;
+                    endPage = currentPage + 1;
+                    
+                    for (let i = startPage; i <= endPage; i++) {
+                      pageButtons.push(
+                        <button
+                          key={`page-${i}`}
+                          onClick={() => {
+                            setCurrentPage(i);
+                            document.getElementById('all-posts-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
+                          }}
+                          className={`mx-1 w-10 h-10 flex items-center justify-center rounded-md text-sm font-semibold transition ${
+                            currentPage === i
+                              ? "bg-yellow-500 text-white shadow-md"
+                              : "bg-white text-gray-700 hover:bg-gray-100"
+                          }`}
+                          aria-label={`Sayfa ${i}`}
+                          aria-current={currentPage === i ? "page" : undefined}
+                        >
+                          {i}
+                        </button>
+                      );
+                    }
+                    
+                    // Son boşluk
+                    pageButtons.push(
+                      <span key="ellipsis-end" className="mx-1 w-10 h-10 flex items-center justify-center text-gray-500">
+                        ...
+                      </span>
+                    );
+                  }
+                  
+                  // Son sayfayı her zaman göster
+                  pageButtons.push(
+                    <button
+                      key={`page-${totalPages}`}
+                      onClick={() => {
+                        setCurrentPage(totalPages);
+                        document.getElementById('all-posts-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
+                      }}
+                      className={`mx-1 w-10 h-10 flex items-center justify-center rounded-md text-sm font-semibold transition ${
+                        currentPage === totalPages
+                          ? "bg-yellow-500 text-white shadow-md"
+                          : "bg-white text-gray-700 hover:bg-gray-100"
+                      }`}
+                      aria-label={`Sayfa ${totalPages}`}
+                      aria-current={currentPage === totalPages ? "page" : undefined}
+                    >
+                      {totalPages}
+                    </button>
+                  );
+                }
+                
+                return pageButtons;
+              })()}
+              
               <button
                 onClick={() => {
                   if (currentPage < totalPages) {
                     setCurrentPage(currentPage + 1);
-                    setTimeout(() => {
-                      document.getElementById('all-posts-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    }, 100);
+                    document.getElementById('all-posts-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
                   }
                 }}
                 disabled={currentPage === totalPages}
@@ -1099,6 +1383,7 @@ const handlePostView = async (postId) => {
                     ? "bg-gray-100 text-gray-400 cursor-not-allowed"
                     : "bg-white text-gray-700 hover:bg-gray-100"
                 }`}
+                aria-label="Sonraki sayfa"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                   <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
@@ -1108,7 +1393,7 @@ const handlePostView = async (postId) => {
           )}
         </section>
         
-        
+        {/* GÜNCELLENDİ: Kullanıcı blogları bölümü güncellendi */}
         {currentUser && (
           <section className="mb-20">
             <div className="mb-10">
@@ -1145,7 +1430,6 @@ const handlePostView = async (postId) => {
             ) : (
               <>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  
                   {(myPosts.length >= 3 ? myPosts.slice(0, 3) : myPosts).map((post, i) => (
                     <motion.div
                       key={`my-post-${post._id || i}`}
@@ -1155,7 +1439,6 @@ const handlePostView = async (postId) => {
                       transition={{ duration: 0.4, delay: i * 0.1 }}
                       className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 border border-yellow-100 flex flex-col h-full"
                     >
-                      
                       <div className="relative w-full" style={{ paddingBottom: "56.25%" }}>
                         <div className="absolute inset-0">
                           <Link href={`/blog/${post._id}`} className="block w-full h-full">
@@ -1203,23 +1486,10 @@ const handlePostView = async (postId) => {
                         
                         <div className="flex items-center justify-between mb-4 mt-auto">
                           <div className="flex items-center gap-2">
-                            <div 
-                              className="cursor-pointer relative overflow-hidden rounded-full group"
-                              onClick={(e) => openPhotoPreview(post.author?.avatar || "/fallback-avatar.png", post.author?.name || "Anonim Yazar", e)}
-                            >
-                              <Image
-                                src={post.author?.avatar || "/fallback-avatar.png"}
-                                alt={post.author?.name || "Anonim Yazar"}
-                                width={32}
-                                height={32}
-                                className="w-8 h-8 rounded-full object-cover border border-gray-200 group-hover:scale-105 transition-transform"
-                              />
-                              <div className="absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
-                                </svg>
-                              </div>
-                            </div>
+                            <UserAvatar 
+                              user={post.author}
+                              onClick={(e) => handleAvatarClick(post.author, e)}
+                            />
                             <span className="text-sm font-medium text-gray-700">
                               Me
                             </span>
@@ -1231,35 +1501,34 @@ const handlePostView = async (postId) => {
                           </span>
                         </div>
                         
-                        {/* "Senin Yazıların" bölümündeki post kartlarını düzenle */}
-<div className="flex items-center justify-between pt-4 border-t border-gray-100">
-  <div className="flex items-center gap-1 text-gray-600">
-    <HiOutlineHeart className="w-5 h-5" />
-    <span className="text-sm">{post.likes?.length || 0}</span>
-  </div>
-  
-  <div className="flex items-center gap-1 text-gray-600">
-    <HiOutlineChat className="w-5 h-5" />
-    <span className="text-sm">{post.comments?.length || 0}</span>
-  </div>
-  
-  
-  <div className="flex items-center gap-1 text-gray-600">
-    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-    </svg>
-    <span className="text-sm">{post.views || 0}</span>
-  </div>
-  
-  <Link 
-    href={`/blog/${post._id}`}
-    onClick={() => handlePostView(post._id)}
-    className="text-sm font-medium text-yellow-600 hover:text-yellow-700 transition-colors hover:underline"
-  >
-    Edit
-  </Link>
-</div>
+                        {/* "Senin Yazıların" bölümündeki post kartları */}
+                        <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+                          <div className="flex items-center gap-1 text-gray-600">
+                            <HiOutlineHeart className="w-5 h-5" />
+                            <span className="text-sm">{post.likes?.length || 0}</span>
+                          </div>
+                          
+                          <div className="flex items-center gap-1 text-gray-600">
+                            <HiOutlineChat className="w-5 h-5" />
+                            <span className="text-sm">{post.comments?.length || 0}</span>
+                          </div>
+                          
+                          <div className="flex items-center gap-1 text-gray-600">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                            </svg>
+                            <span className="text-sm">{post.views || 0}</span>
+                          </div>
+                          
+                          <Link 
+                            href={`/blog/${post._id}`}
+                            onClick={() => handlePostView(post._id)}
+                            className="text-sm font-medium text-yellow-600 hover:text-yellow-700 transition-colors hover:underline"
+                          >
+                            Edit
+                          </Link>
+                        </div>
                       </div>
                     </motion.div>
                   ))}
@@ -1343,8 +1612,6 @@ const handlePostView = async (postId) => {
           </section>
         )}
         
-        
-
         <section className="mb-12">
           <div className="mb-10">
             <motion.h2 
@@ -1394,8 +1661,6 @@ const handlePostView = async (postId) => {
           </div>
         </section>
       </div>
-      
-      
       
       <div className="fixed bottom-6 right-6 flex items-center space-x-3">
         <Link

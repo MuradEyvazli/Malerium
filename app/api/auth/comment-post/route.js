@@ -1,11 +1,9 @@
-// /api/auth/comment-post/route.js
 import dbConnect from "@/lib/dbConnect";
 import Post from "@/models/Post";
 import jwt from "jsonwebtoken";
 
 export async function POST(req) {
   await dbConnect();
-
   try {
     const authHeader = req.headers.get("authorization");
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
@@ -17,8 +15,8 @@ export async function POST(req) {
     const token = authHeader.split(" ")[1];
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const userId = decoded.id;
-
     const { postId, text } = await req.json();
+
     if (!postId || !text) {
       return new Response(
         JSON.stringify({ message: "postId ve text gerekli" }),
@@ -41,7 +39,6 @@ export async function POST(req) {
       text,
       createdAt: new Date()
     });
-    
     await post.save();
 
     // Populate işlemleri

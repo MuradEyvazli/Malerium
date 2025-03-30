@@ -1,12 +1,15 @@
-// /api/auth/like-post/route.js (Next.js 13) 
-// veya /api/auth/like-post.js (Next.js 12)
+// /api/auth/like-post/route.js veya /api/auth/like-post.js
 import dbConnect from "@/lib/dbConnect";
 import Post from "@/models/Post";
 import jwt from "jsonwebtoken";
 
+// Aynı kullanıcının aynı post için gönderdiği istekleri 
+// takip etmek için basit bir in-memory cache
+const requestCache = new Map();
+const THROTTLE_TIME = 1000; // 1 saniye
+
 export async function POST(req) {
   await dbConnect();
-
   try {
     const authHeader = req.headers.get("authorization");
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
@@ -18,13 +21,35 @@ export async function POST(req) {
     const token = authHeader.split(" ")[1];
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const userId = decoded.id;
-
     const { postId } = await req.json();
+
     if (!postId) {
       return new Response(JSON.stringify({ message: "postId gerekli" }), {
         status: 400,
       });
     }
+
+    // Throttling işlemi: Aynı postId ve userId için belirli sürede sadece bir işlem
+    const cacheKey = `${userId}_${postId}`;
+    const lastRequestTime = requestCache.get(cacheKey);
+    const now = Date.now();
+    
+    if (lastRequestTime && now - lastRequestTime < THROTTLE_TIME) {
+      return new Response(
+        JSON.stringify({ 
+          message: "İşlem çok sık tekrarlandı, lütfen tekrar deneyin" 
+        }),
+        { status: 429 } // Too Many Requests
+      );
+    }
+    
+    // Geçerli zamanı cache'e kaydet
+    requestCache.set(cacheKey, now);
+    
+    // Cache temizliği için (isteğe bağlı)
+    setTimeout(() => {
+      requestCache.delete(cacheKey);
+    }, THROTTLE_TIME * 2);
 
     let post = await Post.findById(postId);
     if (!post) {
@@ -40,7 +65,6 @@ export async function POST(req) {
     } else {
       post.likes.splice(index, 1);
     }
-
     await post.save();
 
     // Populate işlemleri
