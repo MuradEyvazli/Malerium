@@ -872,7 +872,7 @@ export default function BlogPage() {
                   href="/login"
                   className="px-4 py-2 bg-white border border-yellow-500 text-yellow-600 rounded-full text-sm font-medium hover:bg-yellow-50 transition flex items-center gap-2"
                 >
-                  <HiLogin className="w-4 h-4" />
+                  <HiLogin className="w-2 h-2" />
                   Log in
                 </Link>
                 <Link 
