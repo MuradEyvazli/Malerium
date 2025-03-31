@@ -1,8 +1,7 @@
 'use client';
 import './globals.css';
-import React, { useState, useRef, useEffect } from "react";
+import React from "react";
 import { LayoutGrid } from "@/components/ui/layout-grid";
-import Enterance from "@/components/Enterance";
 import SectionTwo from '@/components/SectionTwo';
 import { GridMotionDemo } from '@/components/blocks/about-site';
 import { FeatureSteps } from "@/components/blocks/feature-section"
@@ -11,11 +10,10 @@ import { BackgroundPaths } from '@/components/ui/background-paths';
 
 const SkeletonOne = () => {
   return (
-    <div>
+    <div className="p-4">
       <p className="font-bold md:text-4xl text-xl text-white">
         House in the woods
       </p>
-      <p className="font-normal text-base text-white"></p>
       <p className="font-normal text-base my-4 max-w-lg text-neutral-200">
         A serene and tranquil retreat, this house in the woods offers a peaceful
         escape from the hustle and bustle of city life.
@@ -26,11 +24,10 @@ const SkeletonOne = () => {
 
 const SkeletonTwo = () => {
   return (
-    <div>
+    <div className="p-4">
       <p className="font-bold md:text-4xl text-xl text-white">
         House above the clouds
       </p>
-      <p className="font-normal text-base text-white"></p>
       <p className="font-normal text-base my-4 max-w-lg text-neutral-200">
         Perched high above the world, this house offers breathtaking views and a
         unique living experience. It&apos;s a place where the sky meets home,
@@ -39,13 +36,13 @@ const SkeletonTwo = () => {
     </div>
   );
 };
+
 const SkeletonThree = () => {
   return (
-    <div>
+    <div className="p-4">
       <p className="font-bold md:text-4xl text-xl text-white">
         Greens all over
       </p>
-      <p className="font-normal text-base text-white"></p>
       <p className="font-normal text-base my-4 max-w-lg text-neutral-200">
         A house surrounded by greenery and nature&apos;s beauty. It&apos;s the
         perfect place to relax, unwind, and enjoy life.
@@ -53,13 +50,13 @@ const SkeletonThree = () => {
     </div>
   );
 };
+
 const SkeletonFour = () => {
   return (
-    <div>
+    <div className="p-4">
       <p className="font-bold md:text-4xl text-xl text-white">
         Rivers are serene
       </p>
-      <p className="font-normal text-base text-white"></p>
       <p className="font-normal text-base my-4 max-w-lg text-neutral-200">
         A house by the river is a place of peace and tranquility. It&apos;s the
         perfect place to relax, unwind, and enjoy life.
@@ -118,29 +115,35 @@ const features = [
     content: 'Follow along as I capture moments, explore new ideas, and bring visions to life.',
     image: 'https://images.pexels.com/photos/1264210/pexels-photo-1264210.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2'
   },
-]
-
+];
 
 export default function Home() {
-
   return (
-    <div>
+    <div className="max-w-full overflow-x-hidden">
       <BackgroundPaths title="Thats your Malerium Gallery" />
-      <div className="flex justify-center items-center">
-      < RevealImageList />
-      <div className="h-screen py-20 w-full">
-      <LayoutGrid cards={cards} />
-    </div>
-    </div>
-      <GridMotionDemo/>
-      <FeatureSteps 
-        features={features}
-        title="Malerium Journey starts here!"
-        autoPlayInterval={3000}
-        imageHeight="h-[500px]"
-      />
-      <SectionTwo/>
       
+      <div className="container mx-auto px-4">
+        <div className="flex flex-col md:flex-row justify-center items-center space-y-4 md:space-y-0 md:space-x-4">
+          <RevealImageList />
+          
+          <div className="w-full max-w-7xl mx-auto py-10">
+            <LayoutGrid cards={cards} />
+          </div>
+        </div>
+      </div>
+      
+      <div className="container mx-auto px-4">
+        <GridMotionDemo/>
+        
+        <FeatureSteps 
+          features={features}
+          title="Malerium Journey starts here!"
+          autoPlayInterval={3000}
+          imageHeight="h-[500px]"
+        />
+        
+        <SectionTwo/>
+      </div>
     </div>
   );
 }
