@@ -250,11 +250,11 @@ const BlogNavigation = ({ selectedCategory, setSelectedCategory, setCurrentPage 
               </button>
               <Link href="/blog" className="flex items-center">
                 <Image
-                  src="/assets/maleriumBlack.png"
+                  src="/MaleriumTransparentWhite.png"
                   alt="Malerium"
-                  width={120}
-                  height={40}
-                  className="h-8 ml-2 w-auto object-contain"
+                  width={900}
+                  height={140}
+                  className="h-[150px] mr-2  mb-1 w-auto object-contain"
                 />
               </Link>
             </div>

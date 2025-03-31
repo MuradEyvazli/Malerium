@@ -33,7 +33,7 @@ export function Navbar1Demo() {
   const navbarConfig = {
     logo: {
       url: "/",
-      src: "/assets/maleriumBlack.png",
+      src: "/MaleriumTransparentWhite.png",
       alt: "blocks for shadcn/ui",
       // You can add title if you want it to display next to the logo
       // title: "malerium.com"
@@ -120,7 +120,7 @@ export function Navbar1Demo() {
 export function Navbar1({
   logo = {
     url: "/",
-    src: "/assets/maleriumBlack.png",
+    src: "/MaleriumTransparentWhite.png",
     alt: "logo",
     title: "malerium.com",
   },
@@ -302,8 +302,8 @@ export function Navbar1({
         <nav className="hidden lg:flex h-16 items-center justify-between">
           <div className="flex items-center gap-6">
             {/* LOGO */}
-            <Link href={logo.url} className="flex items-center mr-6">
-              <img src={logo.src} alt={logo.alt} className="h-8 w-auto" />
+            <Link href={logo.url} className="flex  items-center ">
+              <img src={logo.src} alt={logo.alt} className="h-[140px] mb-1 w-auto" />
               {logo.title && <span className="ml-2 text-lg font-semibold">{logo.title}</span>}
             </Link>
             
@@ -338,8 +338,8 @@ export function Navbar1({
         {/* MOBILE NAV */}
         <div className="flex h-16 items-center justify-between lg:hidden">
           {/* Mobile Logo */}
-          <Link href={logo.url} className="flex items-center">
-            <img src={logo.src} alt={logo.alt} className="h-8 w-auto" />
+          <Link href={logo.url} className="flex  items-center">
+            <img src={logo.src} alt={logo.alt} className="h-[150px] w-auto" />
           </Link>
           
           {/* Mobile Menu Button */}
@@ -354,9 +354,9 @@ export function Navbar1({
             <SheetContent side="right">
               <SheetHeader className="mb-4">
                 <SheetTitle>
-                  <NavLink href={logo.url} className="flex items-center">
-                    <img src={logo.src} alt={logo.alt} className="h-8 w-auto" />
-                    {logo.title && <span className="ml-2 text-lg font-semibold">{logo.title}</span>}
+                  <NavLink href={logo.url} className="flex items-center justify-start">
+                    <img src={logo.src} alt={logo.alt} className="h-[150px] mb-[-50px] mt-[-50px] w-auto" />
+                    {logo.title && <span className="ml-1 text-lg font-semibold">{logo.title}</span>}
                   </NavLink>
                 </SheetTitle>
               </SheetHeader>

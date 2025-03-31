@@ -743,11 +743,11 @@ export default function BlogPage() {
           >
             <Link href="/">
             <Image
-              src="/assets/maleriumWhite.png"
+              src="/MaleriumTransparentBlack.png"
               alt="Malerium"
-              width={200}
-              height={80}
-              className="mx-auto h-16 sm:h-20 object-contain"
+              width={300}
+              height={300}
+              className="mx-auto h-[290px] sm:h-[100px] object-contain mb-[-100px]"
             />
             </Link>
           </motion.div>
@@ -756,7 +756,7 @@ export default function BlogPage() {
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.5, duration: 0.5 }}
-            className="text-lg sm:text-xl text-white max-w-3xl mx-auto"
+            className="text-lg sm:text-xl text-white max-w-3xl mt-[-50px] mx-auto"
           >
             Tasarım dünyasının en son trendlerini keşfedin, ilham verici projelerle tanışın ve yaratıcı topluluğa katılın.
           </motion.p>
