@@ -1,11 +1,12 @@
 "use client";
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useContext } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useDispatch, useSelector } from "react-redux";
 import { useRouter } from "next/navigation";
 import axios from "axios";
 import Link from "next/link";
 import Image from "next/image";
+import { AuthContext } from "@/app/context/AuthContext";
 
 import { clearUser, setUser } from "@/app/features/UserSlice";
 import {
@@ -13,10 +14,7 @@ import {
   postsFetched,
   postFailed,
   myPostsFetched,
-  postLikedOrUnliked,
-  commentAdded,
   postViewIncremented,
-  // Optimistik güncellemeler için eklenenler
   optimisticLikePost,
   syncLikePostSuccess,
   syncLikePostError,
@@ -32,9 +30,10 @@ import {
 } from "@/app/features/friendSlice";
 
 import FriendsModal from "../../components/blog-components/FriendsModal";
+import LoginPromptOverlay from "../../components/LoginPromptOverlay";
 
 import { HiPlus, HiOutlineSearch, HiOutlineHeart, HiHeart, HiOutlineChat, HiX } from "react-icons/hi";
-import { HiOutlineFilter, HiOutlineGlobeAlt, HiOutlineMenuAlt2 } from "react-icons/hi";
+import { HiOutlineFilter, HiOutlineGlobeAlt, HiOutlineMenuAlt2, HiLogin } from "react-icons/hi";
 import {
   categories,
   popularTags,
@@ -42,10 +41,9 @@ import {
   featuredBlogs,
 } from "@/utils/data";
 import { Gallery4 } from "@/components/blocks/gallery4";
-import PremiumSubscriptionPage from "./premium-subscription/page";
-import { Star,ChevronDown } from "lucide-react";
+import { Star, ChevronDown } from "lucide-react";
 
-// UserAvatar bileşeni - tutarlı avatar deneyimi için
+// UserAvatar component
 const UserAvatar = ({ user, size = "md", onClick }) => {
   const sizeClasses = {
     sm: "w-6 h-6",
@@ -78,6 +76,7 @@ const UserAvatar = ({ user, size = "md", onClick }) => {
 export default function BlogPage() {
   const dispatch = useDispatch();
   const router = useRouter();
+  const { isLoggedIn } = useContext(AuthContext);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [searchFocused, setSearchFocused] = useState(false);
@@ -94,6 +93,14 @@ export default function BlogPage() {
   const premiumSectionRef = useRef(null);
   const [showScrollIndicator, setShowScrollIndicator] = useState(false);
   const [premiumHighlight, setPremiumHighlight] = useState(false);
+  
+  // New state for custom login prompt
+  const [loginPrompt, setLoginPrompt] = useState({
+    show: false,
+    redirectTo: '/login',
+    message: 'Please log in to continue',
+    featureName: 'this feature'
+  });
 
   const [photoPreview, setPhotoPreview] = useState({
     show: false,
@@ -107,10 +114,10 @@ export default function BlogPage() {
   const myPosts = useSelector((state) => state.post.myPosts);
   const { friendRequests, friends } = useSelector((state) => state.friend);
 
-  // SAYFALAMA İYİLEŞTİRMESİ: 6'dan 9'a değiştirildi
+  // Posts per page
   const postsPerPage = 9;
 
-  // Profil linkini oluşturan yardımcı bileşen
+  // Profile link component
   const ProfileLink = ({ user, children, className }) => {
     if (!user || !user._id) {
       return <span className={className}>{children}</span>;
@@ -120,13 +127,19 @@ export default function BlogPage() {
       <Link 
         href={`/profile/${user._id}`} 
         className={className}
+        onClick={(e) => {
+          if (!isLoggedIn) {
+            e.preventDefault();
+            promptLogin(`/profile/${user._id}`, 'profile details', 'to view user profiles');
+          }
+        }}
       >
         {children}
       </Link>
     );
   };
 
-  // Avatar'a tıklama için ayrı bir fonksiyon - profil fotoğrafı önizleme veya profile gitme işlevi
+  // Avatar click handler
   const handleAvatarClick = (user, e) => {
     if (!user || !user._id) return;
     
@@ -135,13 +148,35 @@ export default function BlogPage() {
       e.stopPropagation();
     }
     
-    // CTRL veya Command tuşuna basılıyken tıklanırsa, fotoğraf önizleme göster
+    if (!isLoggedIn) {
+      promptLogin(`/profile/${user._id}`, 'profile details', 'to view user profiles');
+      return;
+    }
+    
+    // CTRL or Command key for photo preview
     if (e && (e.ctrlKey || e.metaKey)) {
       openPhotoPreview(user.avatar || "/fallback-avatar.png", user.name, e);
     } else {
-      // Aksi takdirde, profil sayfasına git
+      // Otherwise go to profile page
       router.push(`/profile/${user._id}`);
     }
+  };
+  
+  // Enhanced login prompt function
+  const promptLogin = (returnPath = "/blog", featureName = 'this feature', message = 'Please log in to continue') => {
+    setLoginPrompt({
+      show: true,
+      redirectTo: returnPath,
+      featureName,
+      message
+    });
+  };
+  
+  const closeLoginPrompt = () => {
+    setLoginPrompt(prev => ({
+      ...prev,
+      show: false
+    }));
   };
   
   const scrollToPremium = () => {
@@ -241,29 +276,34 @@ export default function BlogPage() {
 
   useEffect(() => {
     if (typeof window === "undefined") return; 
-    const token = localStorage.getItem("token");
-    if (!token) {
-      dispatch(clearUser());
-      return;
-    }
-    const fetchCurrentUser = async () => {
-      try {
-        const response = await axios.get("/api/auth/current-user", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        dispatch(setUser(response.data.currentUser));
-      } catch (error) {
-        if (
-          error.response?.status === 401 &&
-          error.response?.data?.message === "Token expired"
-        ) {
-          dispatch(clearUser());
-          localStorage.removeItem("token");
-        }
+    
+    // Only try to fetch current user if logged in
+    if (isLoggedIn) {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        dispatch(clearUser());
+        return;
       }
-    };
-    fetchCurrentUser();
-  }, [dispatch]);
+      
+      const fetchCurrentUser = async () => {
+        try {
+          const response = await axios.get("/api/auth/current-user", {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          dispatch(setUser(response.data.currentUser));
+        } catch (error) {
+          if (
+            error.response?.status === 401 &&
+            error.response?.data?.message === "Token expired"
+          ) {
+            dispatch(clearUser());
+            localStorage.removeItem("token");
+          }
+        }
+      };
+      fetchCurrentUser();
+    }
+  }, [dispatch, isLoggedIn]);
 
   useEffect(() => {
     const fetchPosts = async () => {
@@ -279,7 +319,8 @@ export default function BlogPage() {
   }, [dispatch]);
 
   useEffect(() => {
-    if (!currentUser) return;
+    if (!isLoggedIn || !currentUser) return;
+    
     const fetchMyPosts = async () => {
       dispatch(startLoading());
       try {
@@ -293,14 +334,14 @@ export default function BlogPage() {
       }
     };
     fetchMyPosts();
-  }, [dispatch, currentUser]);
+  }, [dispatch, isLoggedIn, currentUser]);
 
   useEffect(() => {
-    if (currentUser?._id) {
-      dispatch(fetchFriendRequests());
-      dispatch(fetchFriends());
-    }
-  }, [dispatch, currentUser]);
+    if (!isLoggedIn || !currentUser?._id) return;
+    
+    dispatch(fetchFriendRequests());
+    dispatch(fetchFriends());
+  }, [dispatch, isLoggedIn, currentUser]);
 
   // Filter posts when category changes
   useEffect(() => {
@@ -320,6 +361,8 @@ export default function BlogPage() {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
+    if (!isLoggedIn || !searchFocused && !searchTerm) return;
+    
     const fetchUsers = async () => {
       setUserLoading(true);
       try {
@@ -350,13 +393,14 @@ export default function BlogPage() {
     if (searchFocused || searchTerm) {
       fetchUsers();
     }
-  }, [searchTerm, searchFocused, currentUser]);
+  }, [searchTerm, searchFocused, currentUser, isLoggedIn]);
 
   const handleAddFriend = (receiverId) => {
-    if (!currentUser) {
-      alert("Önce giriş yapmalısınız!");
+    if (!isLoggedIn) {
+      promptLogin("/blog", "friend requests", "to connect with other users");
       return;
     }
+    
     dispatch(
       sendFriendRequest({
         receiverId,
@@ -367,12 +411,17 @@ export default function BlogPage() {
   };
 
   const handleCancelFriendRequest = async (requestId) => {
+    if (!isLoggedIn) {
+      promptLogin("/blog", "friend requests", "to manage your connections");
+      return;
+    }
+    
     await dispatch(deleteFriendRequest(requestId));
     dispatch(fetchFriendRequests());
   };
 
   const checkIsFriend = (otherUserId) => {
-    if (!currentUser?._id) return false;
+    if (!isLoggedIn || !currentUser?._id) return false;
     return friends?.some((fr) => {
       if (fr.status !== "accepted") return false;
       const senderId = fr.sender?._id || fr.sender;
@@ -385,7 +434,7 @@ export default function BlogPage() {
   };
 
   const checkIsPending = (otherUserId) => {
-    if (!currentUser?._id) return false;
+    if (!isLoggedIn || !currentUser?._id) return false;
     return friendRequests?.some((rq) => {
       if (rq.status !== "pending") return false;
       const senderId = rq.sender?._id || rq.sender;
@@ -398,7 +447,7 @@ export default function BlogPage() {
   };
 
   const findPendingRequestId = (otherUserId) => {
-    if (!currentUser?._id) return undefined;
+    if (!isLoggedIn || !currentUser?._id) return undefined;
     const pendingReq = friendRequests?.find((rq) => {
       if (rq.status !== "pending") return false;
       const senderId = rq.sender?._id || rq.sender;
@@ -411,23 +460,23 @@ export default function BlogPage() {
     return pendingReq?._id;
   };
 
-  // GÜNCELLENDİ: Optimistik güncelleme ile anında Like
+  // Handle like with auth check
   const [likeInProgress, setLikeInProgress] = useState({});
   const handleLike = async (postId) => {
-    if (!currentUser) {
-      alert("Önce giriş yapmalısınız!");
+    if (!isLoggedIn) {
+      promptLogin(`/blog/${postId}`, "liking posts", "to interact with posts");
       return;
     }
     
-    // Eğer bu post için zaten bir like işlemi devam ediyorsa, işlemi atlayalım
+    // Skip if already processing a like
     if (likeInProgress[postId]) {
       return;
     }
     
-    // Bu post için like işlemini başlattığımızı işaretleyelim
+    // Mark like as in progress
     setLikeInProgress(prev => ({ ...prev, [postId]: true }));
     
-    // Optimistik güncelleme: UI'ı hemen güncelle
+    // Optimistic update
     dispatch(optimisticLikePost({ postId, userId: currentUser._id }));
     
     try {
@@ -438,41 +487,39 @@ export default function BlogPage() {
         { headers: { Authorization: `Bearer ${token}` } }
       );
       
-      // Server'dan gelen veriyle senkronize et
+      // Sync with server data
       dispatch(syncLikePostSuccess(res.data.post));
     } catch (error) {
       console.error("Like hatası:", error);
-      // Hata durumunda optimistik güncellemeyi geri al
+      // Rollback optimistic update on error
       dispatch(syncLikePostError({ postId, userId: currentUser._id }));
       
-      // Kullanıcıya hata geri bildirimi (opsiyonel, çok sık gösterilirse rahatsız edici olabilir)
       if (error.response?.status === 500) {
-        // Çok fazla popup göstermemek için konsola yazdırıyoruz
         console.warn("İşlem çok hızlı tekrarlandı, lütfen biraz bekleyin.");
       } else {
         dispatch(postFailed(error.message));
       }
     } finally {
-      // İşlem tamamlandı - 500ms bekletip sonra like butonunu tekrar aktif edelim
-      // Bu, çok hızlı ardışık tıklamaları sınırlandıracak
+      // Re-enable like button after a timeout
       setTimeout(() => {
         setLikeInProgress(prev => ({ ...prev, [postId]: false }));
       }, 500);
     }
   };
   
-  // GÜNCELLENDİ: Optimistik güncelleme ile anında yorum
+  // Handle comment with auth check
   const handleComment = async (postId) => {
-    if (!commentText.trim()) return;
-    if (!currentUser) {
-      alert("Önce giriş yapmalısınız!");
+    if (!isLoggedIn) {
+      promptLogin(`/blog/${postId}`, "commenting", "to share your thoughts on posts");
       return;
     }
     
-    // Benzersiz bir geçici ID oluştur
+    if (!commentText.trim()) return;
+    
+    // Create a temporary ID for the comment
     const tempId = `temp-${Date.now()}`;
     
-    // Yeni yorum objesi
+    // Create comment object
     const newComment = {
       _id: tempId,
       text: commentText,
@@ -480,7 +527,7 @@ export default function BlogPage() {
       createdAt: new Date().toISOString()
     };
     
-    // Optimistik güncelleme: UI'ı hemen güncelle
+    // Optimistic update
     dispatch(optimisticCommentPost({ postId, comment: newComment }));
     setCommentText("");
     
@@ -492,17 +539,18 @@ export default function BlogPage() {
         { headers: { Authorization: `Bearer ${token}` } }
       );
       
-      // Server'dan gelen veriyle senkronize et
+      // Sync with server data
       dispatch(syncCommentPostSuccess(res.data.post));
       setActiveCommentPostId(null);
     } catch (error) {
       console.error("Comment hatası:", error);
-      // Hata durumunda optimistik güncellemeyi geri al
+      // Rollback optimistic update on error
       dispatch(syncCommentPostError({ postId, commentId: tempId }));
       dispatch(postFailed(error.message));
     }
   };
   
+  // Handle post view
   const handlePostView = async (postId) => {
     if (!postId) return;
     
@@ -516,6 +564,19 @@ export default function BlogPage() {
     } catch (error) {
       console.error("Görüntüleme kaydedilemedi:", error);
     }
+  };
+  
+  // Handle post navigation
+  const handlePostClick = (postId, e) => {
+    if (e) {
+      e.preventDefault();
+    }
+    
+    // Record the view
+    handlePostView(postId);
+    
+    // Navigate to post, login will be handled on the post page if needed
+    router.push(`/blog/${postId}`);
   };
   
   const handleBlogLogout = async () => {
@@ -600,6 +661,15 @@ export default function BlogPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Login Prompt Overlay */}
+      <LoginPromptOverlay
+        show={loginPrompt.show}
+        onClose={closeLoginPrompt}
+        redirectTo={loginPrompt.redirectTo}
+        message={loginPrompt.message}
+        featureName={loginPrompt.featureName}
+      />
+      
       <AnimatePresence>
         {showMobileMenu && (
           <motion.div
@@ -717,6 +787,12 @@ export default function BlogPage() {
             </Link>
             <Link
               href="/blog/add-post"
+              onClick={(e) => {
+                if (!isLoggedIn) {
+                  e.preventDefault();
+                  promptLogin("/blog/add-post", "creating posts", "to share your own content");
+                }
+              }}
               className="px-6 py-3 rounded-full bg-yellow-500 text-white font-medium hover:bg-yellow-600 transition shadow-lg hover:shadow-xl transform hover:-translate-y-1 flex items-center gap-2"
             >
               <HiPlus className="h-5 w-5" />
@@ -726,23 +802,20 @@ export default function BlogPage() {
         </div>
       </section>
 
-      {/* GÜNCELLEMME: Kullanıcı profili bölümü güncellendi */}
-      {currentUser && (
+      {/* User profile or welcome section */}
+      {isLoggedIn && currentUser ? (
         <div className="bg-white border-b border-gray-100 py-4 shadow-sm">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex flex-col md:flex-row items-center justify-between gap-4">
               <Link href={`/profile/${currentUser._id}`} className="flex items-center space-x-3 group">
-                {/* Kullanıcının avatarı tıklanabilir */}
                 <UserAvatar 
                   user={currentUser}
                   size="lg"
                   onClick={(e) => {
-                    // CTRL veya Command tuşuna basılı tutarken tıklanırsa fotoğraf göster
                     if (e && (e.ctrlKey || e.metaKey)) {
                       openPhotoPreview(currentUser.avatar || "/fallback-avatar.png", currentUser.name, e);
                     } else {
-                      // Aksi takdirde profil sayfasına git (Link içinde olduğu için otomatik)
-                      e.preventDefault(); // Link davranışını engelleme
+                      e.preventDefault();
                       router.push(`/profile/${currentUser._id}`);
                     }
                   }}
@@ -786,6 +859,32 @@ export default function BlogPage() {
             </div>
           </div>
         </div>
+      ) : (
+        <div className="bg-white border-b border-gray-100 py-4 shadow-sm">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-semibold text-gray-800">Welcome to Malerium Blog</h2>
+                <p className="text-sm text-gray-600">Browse posts from our creative community</p>
+              </div>
+              <div className="flex gap-3">
+                <Link 
+                  href="/login"
+                  className="px-4 py-2 bg-white border border-yellow-500 text-yellow-600 rounded-full text-sm font-medium hover:bg-yellow-50 transition flex items-center gap-2"
+                >
+                  <HiLogin className="w-4 h-4" />
+                  Log in
+                </Link>
+                <Link 
+                  href="/signup"
+                  className="px-4 py-2 bg-yellow-500 text-white rounded-full text-sm font-medium hover:bg-yellow-600 transition"
+                >
+                  Sign up
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
       
       <AnimatePresence>
@@ -822,7 +921,6 @@ export default function BlogPage() {
             </p>
           </div>
           
-          {/* GÜNCELLEME: Featured blog cart'ları güncellendi */}
           <motion.div 
             variants={staggerContainer}
             initial="hidden"
@@ -843,7 +941,16 @@ export default function BlogPage() {
                   </span>
                 </div>
                 
-                <Link href={`/blog/${blog.id}`} className="block flex-grow">
+                <Link 
+                  href={`/blog/${blog.id}`} 
+                  className="block flex-grow"
+                  onClick={(e) => {
+                    if (!isLoggedIn) {
+                      e.preventDefault();
+                      promptLogin(`/blog/${blog.id}`, "premium content", "to access VIP features");
+                    }
+                  }}
+                >
                   <div className="aspect-w-16 aspect-h-9 relative overflow-hidden">
                     <Image
                       src={blog.image}
@@ -873,7 +980,6 @@ export default function BlogPage() {
                     
                     <div className="flex items-center justify-between mt-auto pt-4 border-t border-gray-100">
                       <div className="flex items-center gap-2">
-                        {/* Blog yazarının avatarını güncellendi */}
                         {blog.author && (
                           <>
                             <UserAvatar 
@@ -882,16 +988,18 @@ export default function BlogPage() {
                                 e.preventDefault();
                                 e.stopPropagation();
                                 
-                                // CTRL veya Command tuşuna basılıyken tıklanırsa önizleme göster 
+                                if (!isLoggedIn) {
+                                  promptLogin(`/profile/${blog.author._id || ''}`, "user profiles", "to view creator details");
+                                  return;
+                                }
+                                
                                 if (e.ctrlKey || e.metaKey) {
                                   openPhotoPreview(
                                     blog.author.avatar || "https://images.pexels.com/photos/27894205/pexels-photo-27894205.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1", 
                                     blog.author.name || "Yazar", 
                                     e
                                   );
-                                } 
-                                // Aksi halde profile git (eğer yazar ID'si varsa)
-                                else if (blog.author._id) {
+                                } else if (blog.author._id) {
                                   router.push(`/profile/${blog.author._id}`);
                                 }
                               }}
@@ -917,7 +1025,16 @@ export default function BlogPage() {
             ))}
           </motion.div>
           <div className="flex justify-center mt-16 mb-[-100px]">
-          <Link href='/blog/premium-content'  className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-yellow-500 to-purple-600 text-white rounded-full font-medium hover:from-yellow-600 hover:to-purple-700 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-1">
+          <Link 
+            href='/blog/premium-content'  
+            className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-yellow-500 to-purple-600 text-white rounded-full font-medium hover:from-yellow-600 hover:to-purple-700 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-1"
+            onClick={(e) => {
+              if (!isLoggedIn) {
+                e.preventDefault();
+                promptLogin('/blog/premium-content', "premium membership", "to unlock exclusive content");
+              }
+            }}
+          >
             <span>Get Premium Membership</span>
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
               <path fillRule="evenodd" d="M10.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L12.586 11H5a1 1 0 110-2h7.586l-2.293-2.293a1 1 0 010-1.414z" clipRule="evenodd" />
@@ -966,7 +1083,7 @@ export default function BlogPage() {
             <div className="w-20 h-1 bg-yellow-500 rounded-full"></div>
           </div>
           
-          {/* GÜNCELLENDİ: "Post Bulunamadı" ekranı daha kullanıcı dostu yapıldı */}
+          {/* No posts message */}
           {currentPosts.length === 0 ? (
             <div className="bg-white rounded-xl shadow-sm p-10 text-center">
               <HiOutlineSearch className="w-16 h-16 text-gray-300 mx-auto mb-4" />
@@ -990,18 +1107,28 @@ export default function BlogPage() {
                   Tüm Yazıları Göster
                 </button>
               )}
-              {selectedCategory === "All" && currentUser && (
-                <Link 
-                  href="/blog/add-post"
-                  className="px-5 py-2 bg-yellow-500 text-white rounded-full text-sm font-medium hover:bg-yellow-600 transition inline-flex items-center gap-2"
-                >
-                  <HiPlus className="w-4 h-4" />
-                  Yeni Yazı Ekle
-                </Link>
+              {selectedCategory === "All" && (
+                isLoggedIn ? (
+                  <Link 
+                    href="/blog/add-post"
+                    className="px-5 py-2 bg-yellow-500 text-white rounded-full text-sm font-medium hover:bg-yellow-600 transition inline-flex items-center gap-2"
+                  >
+                    <HiPlus className="w-4 h-4" />
+                    Yeni Yazı Ekle
+                  </Link>
+                ) : (
+                  <Link 
+                    href="/login?callbackUrl=/blog/add-post"
+                    className="px-5 py-2 bg-yellow-500 text-white rounded-full text-sm font-medium hover:bg-yellow-600 transition inline-flex items-center gap-2"
+                  >
+                    <HiLogin className="w-4 h-4" />
+                    Giriş Yap ve Yazı Ekle
+                  </Link>
+                )
               )}
             </div>
           ) : (
-            /* GÜNCELLENDİ: Blog post grid yapısı 3x3 formatı için optimize edildi */
+            /* Blog post grid */
             <motion.div
               variants={staggerContainer}
               initial="hidden"
@@ -1018,7 +1145,11 @@ export default function BlogPage() {
                   {/* Post cover image */}
                   <div className="relative w-full" style={{ paddingBottom: "56.25%" }}>
                     <div className="absolute inset-0">
-                      <Link href={`/blog/${post._id}`} className="block w-full h-full">
+                      <Link 
+                        href={`/blog/${post._id}`} 
+                        className="block w-full h-full"
+                        onClick={(e) => handlePostClick(post._id, e)}
+                      >
                         {post.images && post.images.length > 0 ? (
                           <div className="w-full h-full relative">
                             <Image
@@ -1026,7 +1157,7 @@ export default function BlogPage() {
                               alt={post.title || "No Title"}
                               fill
                               className="object-cover transition-transform duration-700 hover:scale-105"
-                              priority={i < 3} // Sadece ilk satırdaki 3 postu öncelikli olarak yükle
+                              priority={i < 3}
                             />
                           </div>
                         ) : (
@@ -1052,7 +1183,10 @@ export default function BlogPage() {
                   
                   {/* Post content */}
                   <div className="p-6 flex-grow flex flex-col">
-                    <Link href={`/blog/${post._id}`}>
+                    <Link 
+                      href={`/blog/${post._id}`}
+                      onClick={(e) => handlePostClick(post._id, e)}
+                    >
                       <h3 className="text-xl font-bold mb-2 text-gray-900 hover:text-yellow-600 transition-colors line-clamp-2 min-h-[3.5rem]">
                         {post.title || "Untitled Post"}
                       </h3>
@@ -1064,13 +1198,11 @@ export default function BlogPage() {
                     
                     <div className="flex items-center justify-between mb-4 mt-auto">
                       <div className="flex items-center gap-2">
-                        {/* Avatar - profil sayfasına yönlendirir veya CTRL+tıklama ile fotoğraf gösterir */}
                         <UserAvatar 
                           user={post.author}
                           onClick={(e) => handleAvatarClick(post.author, e)}
                         />
                         
-                        {/* İsim - profil sayfasına yönlendirir */}
                         <ProfileLink user={post.author} className="text-sm font-medium text-gray-700 hover:text-yellow-600 transition-colors">
                           {post.author?.name || "Anonim User"}
                         </ProfileLink>
@@ -1093,7 +1225,7 @@ export default function BlogPage() {
                             : "text-gray-600 hover:text-red-500"
                         } transition-colors`}
                       >
-                        {post.likes?.includes(currentUser?._id) ? (
+                        {isLoggedIn && post.likes?.includes(currentUser?._id) ? (
                           <HiHeart className="w-5 h-5 text-red-500" />
                         ) : (
                           <HiOutlineHeart className="w-5 h-5" />
@@ -1103,6 +1235,10 @@ export default function BlogPage() {
                       
                       <button
                         onClick={() => {
+                          if (!isLoggedIn) {
+                            promptLogin(`/blog/${post._id}`, "commenting", "to share your thoughts on posts");
+                            return;
+                          }
                           setActiveCommentPostId(
                             activeCommentPostId === post._id ? null : post._id
                           );
@@ -1130,8 +1266,8 @@ export default function BlogPage() {
                       </Link>
                     </div>
                     
-                    {/* Comment input */}
-                    {activeCommentPostId === post._id && (
+                    {/* Comment input - only shown for authenticated users */}
+                    {isLoggedIn && activeCommentPostId === post._id && (
                       <motion.div
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -1159,7 +1295,7 @@ export default function BlogPage() {
             </motion.div>
           )}
           
-          {/* GÜNCELLENDİ: Sayfalama sistemi daha gelişmiş ve kullanıcı dostu yapıldı */}
+          {/* Pagination */}
           {totalPages > 1 && (
             <div className="flex justify-center mt-12">
               <button
@@ -1182,11 +1318,10 @@ export default function BlogPage() {
                 </svg>
               </button>
               
-              {/* Sayfa numaraları için gelişmiş mantık */}
+              {/* Page numbers logic */}
               {(() => {
                 let pageButtons = [];
                 
-                // Toplam sayfa sayısı 7 veya daha az ise hepsini göster
                 if (totalPages <= 7) {
                   for (let i = 1; i <= totalPages; i++) {
                     pageButtons.push(
@@ -1209,9 +1344,7 @@ export default function BlogPage() {
                     );
                   }
                 } else {
-                  // 7'den fazla sayfa varsa akıllı pagination uygula
-                  
-                  // Her zaman ilk sayfayı göster
+                  // First page
                   pageButtons.push(
                     <button
                       key="page-1"
@@ -1231,15 +1364,14 @@ export default function BlogPage() {
                     </button>
                   );
                   
-                  // Ara sayfa numaralarını belirle
+                  // Middle pages
                   let startPage, endPage;
                   
                   if (currentPage <= 3) {
-                    // İlk sayfalardaysa
+                    // First pages
                     startPage = 2;
                     endPage = 5;
                     
-                    // Sayfalar
                     for (let i = startPage; i <= endPage; i++) {
                       pageButtons.push(
                         <button
@@ -1261,7 +1393,7 @@ export default function BlogPage() {
                       );
                     }
                     
-                    // Boşluk
+                    // Ellipsis
                     pageButtons.push(
                       <span key="ellipsis-end" className="mx-1 w-10 h-10 flex items-center justify-center text-gray-500">
                         ...
@@ -1269,9 +1401,9 @@ export default function BlogPage() {
                     );
                     
                   } else if (currentPage >= totalPages - 2) {
-                    // Son sayfalardaysa
+                    // Last pages
                     
-                    // Boşluk
+                    // Ellipsis
                     pageButtons.push(
                       <span key="ellipsis-start" className="mx-1 w-10 h-10 flex items-center justify-center text-gray-500">
                         ...
@@ -1281,7 +1413,6 @@ export default function BlogPage() {
                     startPage = totalPages - 4;
                     endPage = totalPages - 1;
                     
-                    // Sayfalar
                     for (let i = startPage; i <= endPage; i++) {
                       pageButtons.push(
                         <button
@@ -1304,16 +1435,16 @@ export default function BlogPage() {
                     }
                     
                   } else {
-                    // Ortadaki sayfalardaysa
+                    // Middle pages
                     
-                    // İlk boşluk
+                    // First ellipsis
                     pageButtons.push(
                       <span key="ellipsis-start" className="mx-1 w-10 h-10 flex items-center justify-center text-gray-500">
                         ...
                       </span>
                     );
                     
-                    // Ortadaki sayfalar (aktif sayfa ortada olacak şekilde)
+                    // Middle pages (active page in center)
                     startPage = currentPage - 1;
                     endPage = currentPage + 1;
                     
@@ -1338,7 +1469,7 @@ export default function BlogPage() {
                       );
                     }
                     
-                    // Son boşluk
+                    // Last ellipsis
                     pageButtons.push(
                       <span key="ellipsis-end" className="mx-1 w-10 h-10 flex items-center justify-center text-gray-500">
                         ...
@@ -1346,7 +1477,7 @@ export default function BlogPage() {
                     );
                   }
                   
-                  // Son sayfayı her zaman göster
+                  // Last page
                   pageButtons.push(
                     <button
                       key={`page-${totalPages}`}
@@ -1393,8 +1524,8 @@ export default function BlogPage() {
           )}
         </section>
         
-        {/* GÜNCELLENDİ: Kullanıcı blogları bölümü güncellendi */}
-        {currentUser && (
+        {/* My Posts section - only displayed when logged in */}
+        {isLoggedIn && currentUser && (
           <section className="mb-20">
             <div className="mb-10">
               <motion.h2 
@@ -1408,7 +1539,7 @@ export default function BlogPage() {
               <div className="w-20 h-1 bg-yellow-500 rounded-full"></div>
             </div>
             
-            {myPosts.length === 0 ? (
+            {!myPosts || myPosts.length === 0 ? (
               <div className="bg-white rounded-xl shadow-sm p-10 text-center">
                 <div className="w-20 h-20 bg-purple-100 rounded-full mx-auto mb-6 flex items-center justify-center">
                   <HiPlus className="w-10 h-10 text-purple-600" />
@@ -1501,7 +1632,6 @@ export default function BlogPage() {
                           </span>
                         </div>
                         
-                        {/* "Senin Yazıların" bölümündeki post kartları */}
                         <div className="flex items-center justify-between pt-4 border-t border-gray-100">
                           <div className="flex items-center gap-1 text-gray-600">
                             <HiOutlineHeart className="w-5 h-5" />
@@ -1533,7 +1663,7 @@ export default function BlogPage() {
                     </motion.div>
                   ))}
 
-                  {/* Add dummy posts if there are less than 3 real posts */}
+                  {/* Dummy post placeholders */}
                   {myPosts.length === 1 && (
                     <>
                       {[1, 2].map((dummyIndex) => (
@@ -1635,7 +1765,16 @@ export default function BlogPage() {
                 transition={{ duration: 0.4, delay: i * 0.1 }}
                 className="group relative overflow-hidden rounded-xl bg-white shadow-sm hover:shadow-lg transition-all duration-300 h-full"
               >
-                <Link href={category.route} className="block h-full">
+                <Link 
+                  href={category.route} 
+                  className="block h-full"
+                  onClick={(e) => {
+                    if (!isLoggedIn && category.requiresAuth) {
+                      e.preventDefault();
+                      promptLogin(category.route, "documentation access", "to view detailed documentation");
+                    }
+                  }}
+                >
                   <div className="aspect-w-3 aspect-h-2 relative overflow-hidden">
                     <Image
                       src={category.image}
@@ -1662,23 +1801,36 @@ export default function BlogPage() {
         </section>
       </div>
       
-      <div className="fixed bottom-6 right-6 flex items-center space-x-3">
+      <div className="fixed bottom-6 right-6 z-20 flex flex-col gap-3">
+        {!isLoggedIn && (
+          <Link
+            href="/login?callbackUrl=/blog"
+            className="flex items-center justify-center w-14 h-14 rounded-full bg-gray-800 text-white shadow-lg hover:bg-gray-700 transition-colors hover:shadow-xl transform hover:scale-105"
+          >
+            <HiLogin className="w-6 h-6" />
+          </Link>
+        )}
         <Link
           href="/blog/add-post"
+          onClick={(e) => {
+            if (!isLoggedIn) {
+              e.preventDefault();
+              promptLogin("/blog/add-post", "creating posts", "to share your own content");
+            }
+          }}
           className="flex items-center justify-center w-14 h-14 rounded-full bg-yellow-500 text-white shadow-lg hover:bg-yellow-600 transition-colors hover:shadow-xl transform hover:scale-105"
         >
           <HiPlus className="w-6 h-6" />
         </Link>
       </div>
       
-      {/* Profil Fotoğrafı Önizleme Modalı */}
+      {/* Photo Preview Modal */}
       <AnimatePresence>
         {photoPreview.show && (
           <div 
             className="fixed inset-0 z-[10000] flex items-center justify-center"
             onClick={closePhotoPreview}
           >
-            {/* Arkaplan - Tam saydam siyah */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -1687,7 +1839,6 @@ export default function BlogPage() {
               className="absolute inset-0 bg-black/80 backdrop-blur-sm"
             />
             
-            {/* Fotoğraf içeren konteyner */}
             <motion.div
               initial={{ scale: 0.5, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
@@ -1710,7 +1861,6 @@ export default function BlogPage() {
                 />
               </div>
               
-              {/* Kapatma butonu */}
               <button 
                 onClick={closePhotoPreview}
                 className="absolute top-3 right-3 bg-black bg-opacity-60 text-white rounded-full p-2 hover:bg-opacity-80 transition-all"
@@ -1722,7 +1872,7 @@ export default function BlogPage() {
         )}
       </AnimatePresence>
       
-      {/* Arkadaşlar Modalı */}
+      {/* Friends Modal */}
       <FriendsModal
         show={showFriendsModal}
         onClose={() => setShowFriendsModal(false)}

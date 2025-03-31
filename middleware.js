@@ -1,4 +1,3 @@
-// /middleware.js
 import { NextResponse } from "next/server";
 
 export function middleware(req) {
@@ -17,10 +16,33 @@ export function middleware(req) {
   
   // Not logged in
   if (!token) {
-    // Trying to reach /blog or any sub-route => redirect to /login
-    if (pathname.startsWith("/blog")) {
+    // Allow access to the main blog page and blog listing without authentication
+    if (pathname === "/blog" || pathname === "/blog/") {
+      console.log('Middleware: No token, but allowing access to main blog page');
+      return NextResponse.next();
+    }
+    
+    // Specific blog paths that require authentication
+    const authRequiredPaths = [
+      "/blog/add-post", 
+      "/blog/friends", 
+      "/blog/premium-content",
+      "/profile",
+      "/blog/user"
+    ];
+    
+    // Check if current path starts with any of the auth required paths
+    const requiresAuth = authRequiredPaths.some(path => pathname.startsWith(path));
+    
+    // Individual post pages like /blog/123 shouldn't be blocked, handled client-side
+    const isIndividualPostPage = pathname.match(/^\/blog\/[a-zA-Z0-9]+$/);
+    
+    if (requiresAuth) {
       console.log('Middleware: No token, redirecting to login');
-      return NextResponse.redirect(new URL("/login", req.url));
+      // Store the attempted URL to redirect back after login
+      const url = new URL("/login", req.url);
+      url.searchParams.set("callbackUrl", pathname);
+      return NextResponse.redirect(url);
     }
   } else {
     // Logged in
@@ -40,6 +62,6 @@ export const config = {
     "/blog/:path*",
     "/login",
     "/signup",
-    // Exclude API routes from the matcher
+    "/profile/:path*"
   ],
 };

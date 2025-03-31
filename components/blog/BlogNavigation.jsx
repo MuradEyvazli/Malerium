@@ -115,7 +115,7 @@ const BlogNavigation = ({ selectedCategory, setSelectedCategory, setCurrentPage 
         
         // Limit random users when not searching
         if (!searchTerm && users.length > 3) {
-          users = users.sort(() => 0.5 - Math.random()).slice(0, 3);
+          users = users.sort(() => 0.5 - Math.random()).slice(0, 6);
         }
         
         setFetchedUsers(users);
@@ -427,7 +427,7 @@ const BlogNavigation = ({ selectedCategory, setSelectedCategory, setCurrentPage 
                 </button>
               ) : (
                 <Link 
-                  href="/auth/login"
+                  href="/login"
                   className="px-4 py-2 rounded-full text-sm bg-yellow-500 text-white hover:bg-yellow-600 transition font-medium"
                 >
                   Log In
