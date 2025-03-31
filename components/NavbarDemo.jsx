@@ -329,6 +329,7 @@ export function Navbar1({
                 <Button asChild size="sm">
                   <Link href={auth.signup.url}>{auth.signup.text}</Link>
                 </Button>
+                
               </>
             )}
           </div>

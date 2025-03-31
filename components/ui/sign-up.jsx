@@ -31,8 +31,8 @@ export function SignUpPage() {
       const data = await res.json();
 
       if (res.ok) {
-        toast.success("Registration successful! Redirecting...");
-        setTimeout(() => router.push("/blog"), 2000);
+        toast.success("Registration successful! Redirecting to login user...");
+        setTimeout(() => router.push("/login"), 2000);
       } else {
         toast.error(data.error || "Registration failed");
       }
