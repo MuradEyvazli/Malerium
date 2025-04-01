@@ -10,9 +10,10 @@ import Image from "next/image";
 import { clearUser } from "@/app/features/UserSlice";
 import { sendFriendRequest, fetchFriendRequests, fetchFriends, deleteFriendRequest } from "@/app/features/friendSlice";
 
-import FriendsModal from "../blog-components/FriendsModal";
+// Import the simplified FriendsModal
+import SimplifiedFriendsModal from "../blog-components/SimplifiedFriendsModal";
 
-import { HiPlus, HiOutlineSearch, HiOutlineMenuAlt2, HiOutlineFilter, HiX } from "react-icons/hi";
+import { HiOutlineSearch, HiOutlineMenuAlt2, HiOutlineFilter, HiX } from "react-icons/hi";
 import { categories } from "@/utils/data";
 
 const BlogNavigation = ({ selectedCategory, setSelectedCategory, setCurrentPage }) => {
@@ -29,37 +30,13 @@ const BlogNavigation = ({ selectedCategory, setSelectedCategory, setCurrentPage 
   const [showMobileSearch, setShowMobileSearch] = useState(false);
   
   const searchRef = useRef(null);
-  
-  const [photoPreview, setPhotoPreview] = useState({
-    show: false,
-    src: "",
-    alt: ""
-  });
 
   const currentUser = useSelector((state) => state.user.currentUser);
-  const { friendRequests, friends } = useSelector((state) => state.friend);
+  const { friendRequests = [], friends = [] } = useSelector((state) => state.friend) || {};
   
-  // Open photo preview
-  const openPhotoPreview = (src, alt, e) => {
-    if (e) {
-      e.preventDefault(); 
-      e.stopPropagation(); 
-    }
-    setPhotoPreview({
-      show: true,
-      src: src || "/fallback-avatar.png",
-      alt: alt || "Profile Photo"
-    });
-  };
-  
-  // Close photo preview
-  const closePhotoPreview = () => {
-    setPhotoPreview({
-      ...photoPreview,
-      show: false
-    });
-  };
-  
+  // Safely get the count of friends
+  const friendsCount = Array.isArray(friends) ? friends.length : 0;
+
   // Handle click outside for search dropdown
   useEffect(() => {
     function handleClickOutside(event) {
@@ -150,17 +127,20 @@ const BlogNavigation = ({ selectedCategory, setSelectedCategory, setCurrentPage 
 
   // Cancel friend request
   const handleCancelFriendRequest = async (requestId) => {
+    if (!requestId) return;
     await dispatch(deleteFriendRequest(requestId));
     dispatch(fetchFriendRequests());
   };
 
-  // Check if already friends
+  // Check if already friends - with null safety
   const checkIsFriend = (otherUserId) => {
-    if (!currentUser?._id) return false;
-    return friends?.some((fr) => {
-      if (fr.status !== "accepted") return false;
+    if (!currentUser?._id || !otherUserId || !Array.isArray(friends)) return false;
+    
+    return friends.some((fr) => {
+      if (!fr || fr.status !== "accepted") return false;
       const senderId = fr.sender?._id || fr.sender;
       const receiverId = fr.receiver?._id || fr.receiver;
+      
       return (
         (senderId === currentUser._id && receiverId === otherUserId) ||
         (receiverId === currentUser._id && senderId === otherUserId)
@@ -168,13 +148,15 @@ const BlogNavigation = ({ selectedCategory, setSelectedCategory, setCurrentPage 
     });
   };
 
-  // Check if friend request is pending
+  // Check if friend request is pending - with null safety
   const checkIsPending = (otherUserId) => {
-    if (!currentUser?._id) return false;
-    return friendRequests?.some((rq) => {
-      if (rq.status !== "pending") return false;
+    if (!currentUser?._id || !otherUserId || !Array.isArray(friendRequests)) return false;
+    
+    return friendRequests.some((rq) => {
+      if (!rq || rq.status !== "pending") return false;
       const senderId = rq.sender?._id || rq.sender;
       const receiverId = rq.receiver?._id || rq.receiver;
+      
       return (
         (senderId === currentUser._id && receiverId === otherUserId) ||
         (receiverId === currentUser._id && senderId === otherUserId)
@@ -182,18 +164,21 @@ const BlogNavigation = ({ selectedCategory, setSelectedCategory, setCurrentPage 
     });
   };
 
-  // Find pending request ID
+  // Find pending request ID - with null safety
   const findPendingRequestId = (otherUserId) => {
-    if (!currentUser?._id) return undefined;
-    const pendingReq = friendRequests?.find((rq) => {
-      if (rq.status !== "pending") return false;
+    if (!currentUser?._id || !otherUserId || !Array.isArray(friendRequests)) return undefined;
+    
+    const pendingReq = friendRequests.find((rq) => {
+      if (!rq || rq.status !== "pending") return false;
       const senderId = rq.sender?._id || rq.sender;
       const receiverId = rq.receiver?._id || rq.receiver;
+      
       return (
         (senderId === currentUser._id && receiverId === otherUserId) ||
         (receiverId === currentUser._id && senderId === otherUserId)
       );
     });
+    
     return pendingReq?._id;
   };
   
@@ -254,14 +239,14 @@ const BlogNavigation = ({ selectedCategory, setSelectedCategory, setCurrentPage 
                   alt="Malerium"
                   width={900}
                   height={140}
-                  className="h-[150px] mr-2  mb-1 w-auto object-contain"
+                  className="h-[150px] mr-2 mb-1 w-auto object-contain"
                 />
               </Link>
             </div>
             
             {/* Desktop Categories */}
             <div className="hidden lg:flex items-center space-x-6">
-              {categories.slice(0, 5).map((category, idx) => (
+              {Array.isArray(categories) && categories.slice(0, 5).map((category, idx) => (
                 <button
                   key={`nav-${idx}`}
                   onClick={() => {
@@ -317,70 +302,65 @@ const BlogNavigation = ({ selectedCategory, setSelectedCategory, setCurrentPage 
                       </div>
                     ) : fetchedUsers && fetchedUsers.length > 0 ? (
                       <div className="max-h-72 overflow-y-auto">
-                        {fetchedUsers.map((user) => (
-                          <div 
-                            key={user._id} 
-                            className="flex items-center justify-between p-3 hover:bg-gray-50 transition-colors"
-                          >
-                            <div className="flex items-center gap-3 flex-grow">
-                              {/* Profile photo preview on click */}
-                              <div 
-                                className="cursor-pointer relative overflow-hidden rounded-full group"
-                                onClick={(e) => openPhotoPreview(user.avatar || "/fallback-avatar.png", user.name, e)}
-                              >
-                                <Image
-                                  src={user.avatar || "/fallback-avatar.png"}
-                                  alt={user.name}
-                                  width={40}
-                                  height={40}
-                                  className="w-10 h-10 rounded-full object-cover group-hover:scale-105 transition-transform"
-                                />
-                                {/* Magnifier effect on hover */}
-                                <div className="absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
-                                  </svg>
+                        {fetchedUsers.map((user) => {
+                          // Skip invalid users
+                          if (!user || !user._id) return null;
+                          
+                          return (
+                            <div 
+                              key={user._id} 
+                              className="flex items-center justify-between p-3 hover:bg-gray-50 transition-colors"
+                            >
+                              <div className="flex items-center gap-3 flex-grow">
+                                <div className="overflow-hidden rounded-full">
+                                  <Image
+                                    src={user.avatar || "/fallback-avatar.png"}
+                                    alt={user.name || "User"}
+                                    width={40}
+                                    height={40}
+                                    className="w-10 h-10 rounded-full object-cover"
+                                  />
                                 </div>
+                                <Link 
+                                  href={`/profile/${user._id}`}
+                                  onClick={() => {
+                                    setSearchTerm("");
+                                    setSearchFocused(false);
+                                  }}
+                                >
+                                  <div>
+                                    <p className="font-medium text-gray-800">{user.name || "User"}</p>
+                                    <p className="text-xs text-gray-500">{user.title || "User"}</p>
+                                  </div>
+                                </Link>
                               </div>
-                              <Link 
-                                href={`/profile/${user._id}`}
-                                onClick={() => {
-                                  setSearchTerm("");
-                                  setSearchFocused(false);
-                                }}
-                              >
+                              
+                              {currentUser && user._id !== currentUser._id && (
                                 <div>
-                                  <p className="font-medium text-gray-800">{user.name}</p>
-                                  <p className="text-xs text-gray-500">{user.title || "User"}</p>
+                                  {checkIsFriend(user._id) ? (
+                                    <span className="px-3 py-1 text-xs bg-green-100 text-green-700 rounded-full">
+                                      Friends
+                                    </span>
+                                  ) : checkIsPending(user._id) ? (
+                                    <button
+                                      onClick={() => handleCancelFriendRequest(findPendingRequestId(user._id))}
+                                      className="px-3 py-1 text-xs bg-gray-100 text-gray-700 rounded-full hover:bg-gray-200 transition-colors"
+                                    >
+                                      Cancel Request
+                                    </button>
+                                  ) : (
+                                    <button
+                                      onClick={() => handleAddFriend(user._id)}
+                                      className="px-3 py-1 text-xs bg-yellow-100 text-yellow-700 rounded-full hover:bg-yellow-200 transition-colors"
+                                    >
+                                      Add Friend
+                                    </button>
+                                  )}
                                 </div>
-                              </Link>
+                              )}
                             </div>
-                            
-                            {(user._id !== currentUser?._id) && (
-                              <div>
-                                {checkIsFriend(user._id) ? (
-                                  <span className="px-3 py-1 text-xs bg-green-100 text-green-700 rounded-full">
-                                    Friends
-                                  </span>
-                                ) : checkIsPending(user._id) ? (
-                                  <button
-                                    onClick={() => handleCancelFriendRequest(findPendingRequestId(user._id))}
-                                    className="px-3 py-1 text-xs bg-gray-100 text-gray-700 rounded-full hover:bg-gray-200 transition-colors"
-                                  >
-                                    Cancel Request
-                                  </button>
-                                ) : (
-                                  <button
-                                    onClick={() => handleAddFriend(user._id)}
-                                    className="px-3 py-1 text-xs bg-yellow-100 text-yellow-700 rounded-full hover:bg-yellow-200 transition-colors"
-                                  >
-                                    Add Friend
-                                  </button>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     ) : (
                       <div className="p-4 text-center text-sm text-gray-500">
@@ -414,14 +394,14 @@ const BlogNavigation = ({ selectedCategory, setSelectedCategory, setCurrentPage 
                 >
                   <Image
                     src={currentUser.avatar || "/fallback-avatar.png"}
-                    alt={currentUser.name}
+                    alt={currentUser.name || "User"}
                     width={32}
                     height={32}
                     className="h-8 w-8 rounded-full object-cover border-2 border-white shadow-sm hover:border-yellow-400 transition-colors"
                   />
-                  {friends?.length > 0 && (
+                  {friendsCount > 0 && (
                     <span className="absolute -top-1 -right-1 bg-yellow-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">
-                      {friends.length}
+                      {friendsCount > 99 ? '99+' : friendsCount}
                     </span>
                   )}
                 </button>
@@ -482,64 +462,66 @@ const BlogNavigation = ({ selectedCategory, setSelectedCategory, setCurrentPage 
                       </div>
                     ) : fetchedUsers && fetchedUsers.length > 0 ? (
                       <div className="max-h-60 overflow-y-auto">
-                        {fetchedUsers.map((user) => (
-                          <div 
-                            key={user._id} 
-                            className="flex items-center justify-between p-3 hover:bg-gray-50 transition-colors"
-                          >
-                            <div className="flex items-center gap-3 flex-grow">
-                              <div 
-                                className="cursor-pointer relative overflow-hidden rounded-full group"
-                                onClick={(e) => openPhotoPreview(user.avatar || "/fallback-avatar.png", user.name, e)}
-                              >
-                                <Image
-                                  src={user.avatar || "/fallback-avatar.png"}
-                                  alt={user.name}
-                                  width={40}
-                                  height={40}
-                                  className="w-10 h-10 rounded-full object-cover group-hover:scale-105 transition-transform"
-                                />
-                              </div>
-                              <Link 
-                                href={`/profile/${user._id}`}
-                                onClick={() => {
-                                  setSearchTerm("");
-                                  setSearchFocused(false);
-                                  setShowMobileMenu(false);
-                                }}
-                              >
-                                <div>
-                                  <p className="font-medium text-gray-800">{user.name}</p>
-                                  <p className="text-xs text-gray-500">{user.title || "User"}</p>
+                        {fetchedUsers.map((user) => {
+                          // Skip invalid users
+                          if (!user || !user._id) return null;
+                          
+                          return (
+                            <div 
+                              key={user._id} 
+                              className="flex items-center justify-between p-3 hover:bg-gray-50 transition-colors"
+                            >
+                              <div className="flex items-center gap-3 flex-grow">
+                                <div className="overflow-hidden rounded-full">
+                                  <Image
+                                    src={user.avatar || "/fallback-avatar.png"}
+                                    alt={user.name || "User"}
+                                    width={40}
+                                    height={40}
+                                    className="w-10 h-10 rounded-full object-cover"
+                                  />
                                 </div>
-                              </Link>
-                            </div>
-                            
-                            {(user._id !== currentUser?._id) && (
-                              <div>
-                                {checkIsFriend(user._id) ? (
-                                  <span className="px-3 py-1 text-xs bg-green-100 text-green-700 rounded-full">
-                                    Friends
-                                  </span>
-                                ) : checkIsPending(user._id) ? (
-                                  <button
-                                    onClick={() => handleCancelFriendRequest(findPendingRequestId(user._id))}
-                                    className="px-3 py-1 text-xs bg-gray-100 text-gray-700 rounded-full hover:bg-gray-200 transition-colors"
-                                  >
-                                    Cancel
-                                  </button>
-                                ) : (
-                                  <button
-                                    onClick={() => handleAddFriend(user._id)}
-                                    className="px-3 py-1 text-xs bg-yellow-100 text-yellow-700 rounded-full hover:bg-yellow-200 transition-colors"
-                                  >
-                                    Add
-                                  </button>
-                                )}
+                                <Link 
+                                  href={`/profile/${user._id}`}
+                                  onClick={() => {
+                                    setSearchTerm("");
+                                    setSearchFocused(false);
+                                    setShowMobileMenu(false);
+                                  }}
+                                >
+                                  <div>
+                                    <p className="font-medium text-gray-800">{user.name || "User"}</p>
+                                    <p className="text-xs text-gray-500">{user.title || "User"}</p>
+                                  </div>
+                                </Link>
                               </div>
-                            )}
-                          </div>
-                        ))}
+                              
+                              {currentUser && user._id !== currentUser._id && (
+                                <div>
+                                  {checkIsFriend(user._id) ? (
+                                    <span className="px-3 py-1 text-xs bg-green-100 text-green-700 rounded-full">
+                                      Friends
+                                    </span>
+                                  ) : checkIsPending(user._id) ? (
+                                    <button
+                                      onClick={() => handleCancelFriendRequest(findPendingRequestId(user._id))}
+                                      className="px-3 py-1 text-xs bg-gray-100 text-gray-700 rounded-full hover:bg-gray-200 transition-colors"
+                                    >
+                                      Cancel
+                                    </button>
+                                  ) : (
+                                    <button
+                                      onClick={() => handleAddFriend(user._id)}
+                                      className="px-3 py-1 text-xs bg-yellow-100 text-yellow-700 rounded-full hover:bg-yellow-200 transition-colors"
+                                    >
+                                      Add
+                                    </button>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
                     ) : (
                       <div className="p-4 text-center text-sm text-gray-500">
@@ -568,7 +550,7 @@ const BlogNavigation = ({ selectedCategory, setSelectedCategory, setCurrentPage 
               </div>
               
               {/* Categories */}
-              {categories.map((category, idx) => (
+              {Array.isArray(categories) && categories.map((category, idx) => (
                 <button
                   key={`mobile-cat-${idx}`}
                   onClick={() => {
@@ -636,64 +618,66 @@ const BlogNavigation = ({ selectedCategory, setSelectedCategory, setCurrentPage 
                 </div>
               ) : fetchedUsers && fetchedUsers.length > 0 ? (
                 <div className="divide-y divide-gray-100">
-                  {fetchedUsers.map((user) => (
-                    <div 
-                      key={user._id} 
-                      className="flex items-center justify-between py-3"
-                    >
-                      <div className="flex items-center gap-3 flex-grow">
-                        <div 
-                          className="cursor-pointer relative overflow-hidden rounded-full group"
-                          onClick={(e) => openPhotoPreview(user.avatar || "/fallback-avatar.png", user.name, e)}
-                        >
-                          <Image
-                            src={user.avatar || "/fallback-avatar.png"}
-                            alt={user.name}
-                            width={48}
-                            height={48}
-                            className="w-12 h-12 rounded-full object-cover group-hover:scale-105 transition-transform"
-                          />
-                        </div>
-                        <Link 
-                          href={`/profile/${user._id}`}
-                          onClick={() => {
-                            setSearchTerm("");
-                            setSearchFocused(false);
-                            setShowMobileSearch(false);
-                          }}
-                        >
-                          <div>
-                            <p className="font-medium text-gray-800">{user.name}</p>
-                            <p className="text-xs text-gray-500">{user.title || "User"}</p>
+                  {fetchedUsers.map((user) => {
+                    // Skip invalid users
+                    if (!user || !user._id) return null;
+                    
+                    return (
+                      <div 
+                        key={user._id} 
+                        className="flex items-center justify-between py-3"
+                      >
+                        <div className="flex items-center gap-3 flex-grow">
+                          <div className="overflow-hidden rounded-full">
+                            <Image
+                              src={user.avatar || "/fallback-avatar.png"}
+                              alt={user.name || "User"}
+                              width={48}
+                              height={48}
+                              className="w-12 h-12 rounded-full object-cover"
+                            />
                           </div>
-                        </Link>
-                      </div>
-                      
-                      {(user._id !== currentUser?._id) && (
-                        <div>
-                          {checkIsFriend(user._id) ? (
-                            <span className="px-3 py-1.5 text-xs bg-green-100 text-green-700 rounded-full">
-                              Friends
-                            </span>
-                          ) : checkIsPending(user._id) ? (
-                            <button
-                              onClick={() => handleCancelFriendRequest(findPendingRequestId(user._id))}
-                              className="px-3 py-1.5 text-xs bg-gray-100 text-gray-700 rounded-full hover:bg-gray-200 transition-colors"
-                            >
-                              Cancel Request
-                            </button>
-                          ) : (
-                            <button
-                              onClick={() => handleAddFriend(user._id)}
-                              className="px-3 py-1.5 text-xs bg-yellow-100 text-yellow-700 rounded-full hover:bg-yellow-200 transition-colors"
-                            >
-                              Add Friend
-                            </button>
-                          )}
+                          <Link 
+                            href={`/profile/${user._id}`}
+                            onClick={() => {
+                              setSearchTerm("");
+                              setSearchFocused(false);
+                              setShowMobileSearch(false);
+                            }}
+                          >
+                            <div>
+                              <p className="font-medium text-gray-800">{user.name || "User"}</p>
+                              <p className="text-xs text-gray-500">{user.title || "User"}</p>
+                            </div>
+                          </Link>
                         </div>
-                      )}
-                    </div>
-                  ))}
+                        
+                        {currentUser && user._id !== currentUser._id && (
+                          <div>
+                            {checkIsFriend(user._id) ? (
+                              <span className="px-3 py-1.5 text-xs bg-green-100 text-green-700 rounded-full">
+                                Friends
+                              </span>
+                            ) : checkIsPending(user._id) ? (
+                              <button
+                                onClick={() => handleCancelFriendRequest(findPendingRequestId(user._id))}
+                                className="px-3 py-1.5 text-xs bg-gray-100 text-gray-700 rounded-full hover:bg-gray-200 transition-colors"
+                              >
+                                Cancel Request
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => handleAddFriend(user._id)}
+                                className="px-3 py-1.5 text-xs bg-yellow-100 text-yellow-700 rounded-full hover:bg-yellow-200 transition-colors"
+                              >
+                                Add Friend
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               ) : (
                 <div className="p-4 text-center text-sm text-gray-500">
@@ -747,59 +731,8 @@ const BlogNavigation = ({ selectedCategory, setSelectedCategory, setCurrentPage 
         )}
       </AnimatePresence>
       
-      {/* Photo Preview Modal */}
-      <AnimatePresence>
-        {photoPreview.show && (
-          <div 
-            className="fixed inset-0 z-[10000] flex items-center justify-center"
-            onClick={closePhotoPreview}
-          >
-            {/* Background - Full transparent black */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              className="absolute inset-0 bg-black/80 backdrop-blur-sm"
-            />
-            
-            {/* Photo container */}
-            <motion.div
-              initial={{ scale: 0.5, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.5, opacity: 0 }}
-              transition={{ 
-                duration: 0.3,
-                type: "spring",
-                stiffness: 300,
-                damping: 25
-              }}
-              className="relative z-10 w-full max-w-xl mx-4 bg-transparent rounded-xl overflow-hidden"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="relative aspect-square max-h-[80vh] overflow-hidden rounded-xl border-4 border-white">
-                <Image
-                  src={photoPreview.src}
-                  alt={photoPreview.alt}
-                  fill
-                  className="object-cover w-full h-full"
-                />
-              </div>
-              
-              {/* Close button */}
-              <button 
-                onClick={closePhotoPreview}
-                className="absolute top-3 right-3 bg-black bg-opacity-60 text-white rounded-full p-2 hover:bg-opacity-80 transition-all"
-              >
-                <HiX className="w-6 h-6" />
-              </button>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-      
-      {/* Friends Modal */}
-      <FriendsModal
+      {/* Simplified Friends Modal with Proper Error Handling */}
+      <SimplifiedFriendsModal
         show={showFriendsModal}
         onClose={() => setShowFriendsModal(false)}
         currentUser={currentUser}

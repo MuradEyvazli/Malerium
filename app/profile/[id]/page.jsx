@@ -19,7 +19,8 @@ export default function ProfilePage() {
   const dispatch = useDispatch();
   const router = useRouter();
 
-  const { friendRequests, friends } = useSelector((state) => state.friend);
+  // Güvenli başlangıç değerleri ile Redux verilerini al
+  const { friendRequests = [], friends = [] } = useSelector((state) => state.friend || { friendRequests: [], friends: [] });
   const currentUser = useSelector((state) => state.user.currentUser);
 
   const [profile, setProfile] = useState(null);
@@ -31,72 +32,72 @@ export default function ProfilePage() {
   const postsPerPage = 6;
 
   // Update the error handling in your ProfilePage component
-useEffect(() => {
-  if (currentUser?._id) {
-    dispatch(fetchFriendRequests());
-    dispatch(fetchFriends());
-  }
-
-  const fetchProfileAndPosts = async () => {
-    setLoading(true);
-    const token = localStorage.getItem("token");
-
-    // If no token is available, redirect to login
-    if (!token) {
-      router.push("/login");
-      return;
+  useEffect(() => {
+    if (currentUser && currentUser._id) {
+      dispatch(fetchFriendRequests());
+      dispatch(fetchFriends());
     }
 
-    try {
-      // 1) Profile Data
-      const profileRes = await fetch(`/api/auth/profile/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      
-      if (!profileRes.ok) {
-        if (profileRes.status === 401) {
-          // Unauthorized - clear user state and redirect to login
-          dispatch(clearUser());
-          localStorage.removeItem("token");
-          router.push("/login");
-          return; // Prevent further execution
-        }
-        console.error("Failed to fetch profile:", profileRes.status);
-        setProfile(null); // Set profile to null to show the "Profile not found" UI
-        setLoading(false);
-        return; // Prevent further execution
-      }
-      
-      const profileData = await profileRes.json();
-      setProfile(profileData.profile);
+    const fetchProfileAndPosts = async () => {
+      setLoading(true);
+      const token = localStorage.getItem("token");
 
-      // 2) User Posts
+      // If no token is available, redirect to login
+      if (!token) {
+        router.push("/login");
+        return;
+      }
+
       try {
-        const postsRes = await fetch(`/api/auth/user-posts/${id}`, {
+        // 1) Profile Data
+        const profileRes = await fetch(`/api/auth/profile/${id}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         
-        if (postsRes.ok) {
-          const postsData = await postsRes.json();
-          setUserPosts(postsData.posts || []);
-        } else {
-          console.error("Failed to fetch user posts:", postsRes.status);
+        if (!profileRes.ok) {
+          if (profileRes.status === 401) {
+            // Unauthorized - clear user state and redirect to login
+            dispatch(clearUser());
+            localStorage.removeItem("token");
+            router.push("/login");
+            return; // Prevent further execution
+          }
+          console.error("Failed to fetch profile:", profileRes.status);
+          setProfile(null); // Set profile to null to show the "Profile not found" UI
+          setLoading(false);
+          return; // Prevent further execution
+        }
+        
+        const profileData = await profileRes.json();
+        setProfile(profileData.profile);
+
+        // 2) User Posts
+        try {
+          const postsRes = await fetch(`/api/auth/user-posts/${id}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          
+          if (postsRes.ok) {
+            const postsData = await postsRes.json();
+            setUserPosts(postsData.posts || []);
+          } else {
+            console.error("Failed to fetch user posts:", postsRes.status);
+            setUserPosts([]);
+          }
+        } catch (postsError) {
+          console.error("Error fetching user posts:", postsError);
           setUserPosts([]);
         }
-      } catch (postsError) {
-        console.error("Error fetching user posts:", postsError);
-        setUserPosts([]);
+      } catch (error) {
+        console.error("Error in profile data fetching:", error);
+        setProfile(null);
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      console.error("Error in profile data fetching:", error);
-      setProfile(null);
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
 
-  fetchProfileAndPosts();
-}, [id, dispatch, currentUser, router]);
+    fetchProfileAndPosts();
+  }, [id, dispatch, currentUser, router]);
 
   // Yükleniyor Ekranı
   if (loading) {
@@ -126,19 +127,22 @@ useEffect(() => {
   }
 
   // Kendi profili mi?
-  const isOwnProfile = currentUser?._id === id;
+  const isOwnProfile = currentUser && currentUser._id === id;
 
-  // Arkadaşlık durumu
+  // Arkadaşlık durumu - NULL kontrolü eklendi
   let isFriend = false;
   let hasPendingRequest = false;
   if (!isOwnProfile) {
-    isFriend = friends.some(
+    isFriend = friends && Array.isArray(friends) && friends.some(
       (f) =>
-        f.status === "accepted" &&
-        (f.sender._id === id || f.receiver._id === id)
+        f && f.status === "accepted" &&
+        ((f.sender && f.sender._id === id) || (f.receiver && f.receiver._id === id))
     );
-    hasPendingRequest = friendRequests.some(
-      (req) => req.sender._id === id || req.receiver._id === id
+    
+    hasPendingRequest = friendRequests && Array.isArray(friendRequests) && friendRequests.some(
+      (req) => 
+        (req && req.sender && req.sender._id === id) || 
+        (req && req.receiver && req.receiver._id === id)
     );
   }
 
@@ -152,29 +156,38 @@ useEffect(() => {
         senderAvatar: currentUser.avatar,
       })
     );
-    dispatch({
-      type: "friend/fetchFriendRequests/fulfilled",
-      payload: [
-        ...friendRequests,
-        {
-          sender: {
-            _id: currentUser._id,
-            name: currentUser.name,
-            avatar: currentUser.avatar,
+    
+    // Güvenlik kontrolleri eklendi
+    if (friendRequests && Array.isArray(friendRequests)) {
+      dispatch({
+        type: "friend/fetchFriendRequests/fulfilled",
+        payload: [
+          ...friendRequests,
+          {
+            sender: {
+              _id: currentUser._id,
+              name: currentUser.name,
+              avatar: currentUser.avatar,
+            },
+            receiver: { _id: id },
+            status: "pending",
           },
-          receiver: { _id: id },
-          status: "pending",
-        },
-      ],
-    });
+        ],
+      });
+    }
   };
 
-  // Gönderilen isteği geri çek
+  // Gönderilen isteği geri çek - NULL kontrolü eklendi
   const handleCancelRequest = () => {
+    if (!currentUser || !friendRequests || !Array.isArray(friendRequests)) return;
+    
     const request = friendRequests.find(
-      (req) => req.sender._id === currentUser._id && req.receiver._id === id
+      (req) => 
+        req && req.sender && req.sender._id === currentUser._id && 
+        req.receiver && req.receiver._id === id
     );
-    if (request) {
+    
+    if (request && request._id) {
       dispatch(deleteFriendRequest(request._id));
     }
   };
@@ -390,13 +403,13 @@ useEffect(() => {
                     <div className="text-sm text-gray-500">Toplam Post</div>
                   </div>
                   
-                  {/* Friends Count - Placeholder since we don't have actual count */}
+                  {/* Friends Count - NULL kontrolü eklendi */}
                   <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
                     <div className="text-3xl font-bold text-yellow-500">
-                      {friends.filter(f => 
-                        f.status === "accepted" && 
-                        (f.sender._id === profile._id || f.receiver._id === profile._id)
-                      ).length || 0}
+                      {friends && Array.isArray(friends) ? friends.filter(f => 
+                        f && f.status === "accepted" && 
+                        ((f.sender && f.sender._id === profile._id) || (f.receiver && f.receiver._id === profile._id))
+                      ).length : 0}
                     </div>
                     <div className="text-sm text-gray-500">Arkadaş</div>
                   </div>

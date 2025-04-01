@@ -29,7 +29,7 @@ import {
   deleteFriendRequest,
 } from "@/app/features/friendSlice";
 
-import FriendsModal from "../../components/blog-components/FriendsModal";
+import FriendsModal from "../../components/blog-components/SimplifiedFriendsModal";
 import LoginPromptOverlay from "../../components/LoginPromptOverlay";
 
 import { HiPlus, HiOutlineSearch, HiOutlineHeart, HiHeart, HiOutlineChat, HiX } from "react-icons/hi";
