@@ -742,12 +742,10 @@ export default function BlogPage() {
             className="mb-6"
           >
             <Link href="/">
-            <Image
+            <img
               src="/MaleriumTransparentBlack.png"
               alt="Malerium"
-              width={300}
-              height={300}
-              className="mx-auto h-[290px] sm:h-[100px] object-contain mb-[-100px]"
+              className="mx-auto h-[290px] mb-[-120px]  object-contain "
             />
             </Link>
           </motion.div>
